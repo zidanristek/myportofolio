@@ -28,15 +28,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-c5^hmjptb7ljue5_t+s4zfd*3h)gk0%k12o_2bih*4($y4w!ov'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# Host deployment dibaca dari environment supaya berkas ini tetap sama
-# di lokal maupun di server.
-PWS_HOST = os.getenv('PWS_HOST')
-if PWS_HOST:
-    ALLOWED_HOSTS.append(PWS_HOST)
+# Host deployment dibaca dari environment supaya berkas ini tetap sama di lokal
+# maupun di server. PWS_HOST diisi manual, dua sisanya diisi Vercel sendiri.
+DEPLOYMENT_HOSTS = [
+    host
+    for host in (
+        os.getenv('PWS_HOST'),
+        os.getenv('VERCEL_PROJECT_PRODUCTION_URL'),
+        os.getenv('VERCEL_URL'),
+    )
+    if host
+]
+
+ALLOWED_HOSTS += DEPLOYMENT_HOSTS
+CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in DEPLOYMENT_HOSTS]
 
 PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 
