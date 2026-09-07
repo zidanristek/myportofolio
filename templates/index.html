@@ -7,56 +7,526 @@
     <title>Muhammad Sultan Zidan - Portfolio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
 </head>
 <body>
-    <header class="site-header">
-        <div class="container">
-            <a href="#profile" class="brand">Muhammad Sultan Zidan</a>
-            <nav aria-label="Main navigation">
-                <a href="#profile">Profile</a>
-            </nav>
+    <nav class="nav" aria-label="Main navigation">
+        <div class="nav-inner">
+            <a class="brand" href="#profile" aria-label="Zido Games, back to top">
+                <img class="brand-logo" src="{% static 'img/zido-games.svg' %}" alt="Zido Games">
+            </a>
+            <div class="nav-links">
+                <a href="#about"><i class="dia"></i>About</a>
+                <a href="#projects"><i class="dia"></i>Projects</a>
+                <a href="#experience"><i class="dia"></i>Experience</a>
+                <a href="#skills"><i class="dia"></i>Skills</a>
+                <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
+            </div>
+
+            <button class="nav-burger" id="burger" type="button"
+                    aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+                <span></span><span></span><span></span>
+            </button>
+
         </div>
-    </header>
+    </nav>
+
+        <div class="nav-menu is-closed" id="nav-menu">
+            <a href="#about"><i class="dia"></i>About</a>
+            <a href="#projects"><i class="dia"></i>Projects</a>
+            <a href="#experience"><i class="dia"></i>Experience</a>
+            <a href="#skills"><i class="dia"></i>Skills</a>
+            <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
+        </div>
 
     <main>
         <section class="hero" id="profile">
-            <div class="container hero-grid">
-                <div class="hero-identity">
-                    <p class="hero-kicker">Computer Science &middot; Universitas Indonesia</p>
-                    <h1>Muhammad Sultan Zidan</h1>
+            <div class="layer sky-glow" data-speed="0.05" aria-hidden="true"></div>
+            <div class="layer stars" data-speed="0.08" id="stars" aria-hidden="true"></div>
+
+            <div class="layer clouds" data-speed="0.16" aria-hidden="true">
+                <div class="cloud c1"></div>
+                <div class="cloud c2"></div>
+            </div>
+
+            <div class="layer ridge" data-speed="0.22" aria-hidden="true">
+                <svg viewBox="0 0 1600 260" preserveAspectRatio="none">
+                    <path d="M0 260 L0 168 C 190 96, 330 190, 520 140 C 700 92, 830 178, 1010 132 C 1200 84, 1380 176, 1600 118 L1600 260 Z" fill="#04529d" opacity=".55"/>
+                    <path d="M0 260 L0 206 C 240 156, 420 224, 640 190 C 880 152, 1060 222, 1290 182 C 1430 158, 1520 196, 1600 176 L1600 260 Z" fill="#023f87" opacity=".6"/>
+                </svg>
+            </div>
+
+
+            <div class="hero-scrim" aria-hidden="true"></div>
+
+            <div class="hero-content">
+                <h1 class="hero-logo">
+                    <img src="{% static 'img/zido-games.svg' %}" alt="Zido Games">
+                </h1>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#projects">See the projects</a>
+                    <a class="btn btn-secondary" href="#about">Read about me</a>
                 </div>
-                <div class="hero-photo">
-                    <div class="photo-block"></div>
-                    <img class="avatar" src="{% static 'img/profile.png' %}" alt="Photo of Muhammad Sultan Zidan" width="800" height="800">
-                </div>
-                <div class="hero-details">
-                    <p class="bio">Computer Science undergraduate at Universitas Indonesia, now in my second year at Fasilkom. I build across the stack, from Django web applications to mobile and game projects. Most of what I pick up in class ends up in a side project or a competition entry.</p>
-                    <dl class="meta-list">
-                        <div class="meta-row">
-                            <dt>NPM</dt>
-                            <dd>2506534876</dd>
+            </div>
+
+            <div class="building" data-speed="0.42" aria-hidden="true">
+                <img src="{% static 'img/ui-rektorat.svg' %}" alt="">
+            </div>
+
+            <div class="scroll-cue" aria-hidden="true">
+                <span class="mouse"></span>
+                <span>Scroll</span>
+            </div>
+
+            <div class="foreground" aria-hidden="true">
+            <svg viewBox="0 0 1600 220" preserveAspectRatio="none">
+            <path fill="#0a3357" d="M0 97.00 L8 97.00 L16 97.01 L24 97.03 L32 97.05 L40 97.08 L48 97.11 L56 97.15 L64 97.20 L72 97.25 L80 97.32 L88 97.39 L96 97.47 L104 97.56 L112 97.66 L120 97.77 L128 97.90 L136 98.03 L144 98.18 L152 98.34 L160 98.51 L168 98.70 L176 98.90 L184 99.12 L192 99.36 L200 99.62 L208 99.89 L216 100.18 L224 100.49 L232 100.82 L240 101.17 L248 101.55 L256 101.94 L264 102.36 L272 102.80 L280 103.26 L288 103.74 L296 104.25 L304 104.78 L312 105.34 L320 105.92 L328 106.52 L336 107.15 L344 107.80 L352 108.48 L360 109.18 L368 109.90 L376 110.64 L384 111.41 L392 112.19 L400 113.00 L408 113.83 L416 114.67 L424 115.54 L432 116.42 L440 117.31 L448 118.22 L456 119.15 L464 120.08 L472 121.03 L480 121.99 L488 122.95 L496 123.93 L504 124.90 L512 125.88 L520 126.86 L528 127.85 L536 128.83 L544 129.80 L552 130.77 L560 131.74 L568 132.69 L576 133.64 L584 134.57 L592 135.48 L600 136.38 L608 137.27 L616 138.13 L624 138.97 L632 139.79 L640 140.58 L648 141.34 L656 142.08 L664 142.79 L672 143.46 L680 144.11 L688 144.71 L696 145.28 L704 145.82 L712 146.32 L720 146.77 L728 147.19 L736 147.56 L744 147.90 L752 148.19 L760 148.44 L768 148.64 L776 148.80 L784 148.91 L792 148.98 L800 149.00 L808 148.98 L816 148.91 L824 148.80 L832 148.64 L840 148.44 L848 148.19 L856 147.90 L864 147.56 L872 147.19 L880 146.77 L888 146.32 L896 145.82 L904 145.28 L912 144.71 L920 144.11 L928 143.46 L936 142.79 L944 142.08 L952 141.34 L960 140.58 L968 139.79 L976 138.97 L984 138.13 L992 137.27 L1000 136.38 L1008 135.48 L1016 134.57 L1024 133.64 L1032 132.69 L1040 131.74 L1048 130.77 L1056 129.80 L1064 128.83 L1072 127.85 L1080 126.86 L1088 125.88 L1096 124.90 L1104 123.93 L1112 122.95 L1120 121.99 L1128 121.03 L1136 120.08 L1144 119.15 L1152 118.22 L1160 117.31 L1168 116.42 L1176 115.54 L1184 114.67 L1192 113.83 L1200 113.00 L1208 112.19 L1216 111.41 L1224 110.64 L1232 109.90 L1240 109.18 L1248 108.48 L1256 107.80 L1264 107.15 L1272 106.52 L1280 105.92 L1288 105.34 L1296 104.78 L1304 104.25 L1312 103.74 L1320 103.26 L1328 102.80 L1336 102.36 L1344 101.94 L1352 101.55 L1360 101.17 L1368 100.82 L1376 100.49 L1384 100.18 L1392 99.89 L1400 99.62 L1408 99.36 L1416 99.12 L1424 98.90 L1432 98.70 L1440 98.51 L1448 98.34 L1456 98.18 L1464 98.03 L1472 97.90 L1480 97.77 L1488 97.66 L1496 97.56 L1504 97.47 L1512 97.39 L1520 97.32 L1528 97.25 L1536 97.20 L1544 97.15 L1552 97.11 L1560 97.08 L1568 97.05 L1576 97.03 L1584 97.01 L1592 97.00 L1600 97.00 L1600 220 L0 220 Z"/>
+            <path fill="#03203f" d="M0 138.00 L8 138.00 L16 138.00 L24 137.99 L32 137.98 L40 137.98 L48 137.97 L56 137.96 L64 137.95 L72 137.94 L80 137.93 L88 137.92 L96 137.92 L104 137.92 L112 137.92 L120 137.92 L128 137.94 L136 137.95 L144 137.98 L152 138.01 L160 138.06 L168 138.11 L176 138.17 L184 138.25 L192 138.34 L200 138.44 L208 138.56 L216 138.70 L224 138.85 L232 139.02 L240 139.21 L248 139.43 L256 139.66 L264 139.91 L272 140.19 L280 140.49 L288 140.81 L296 141.16 L304 141.53 L312 141.92 L320 142.35 L328 142.80 L336 143.27 L344 143.77 L352 144.30 L360 144.85 L368 145.43 L376 146.04 L384 146.67 L392 147.32 L400 148.00 L408 148.70 L416 149.43 L424 150.18 L432 150.95 L440 151.74 L448 152.54 L456 153.37 L464 154.21 L472 155.07 L480 155.94 L488 156.83 L496 157.72 L504 158.63 L512 159.54 L520 160.46 L528 161.38 L536 162.31 L544 163.23 L552 164.16 L560 165.08 L568 165.99 L576 166.90 L584 167.80 L592 168.68 L600 169.56 L608 170.41 L616 171.25 L624 172.08 L632 172.88 L640 173.65 L648 174.40 L656 175.13 L664 175.83 L672 176.49 L680 177.13 L688 177.73 L696 178.30 L704 178.83 L712 179.32 L720 179.78 L728 180.19 L736 180.57 L744 180.90 L752 181.19 L760 181.44 L768 181.64 L776 181.80 L784 181.91 L792 181.98 L800 182.00 L808 181.98 L816 181.91 L824 181.80 L832 181.64 L840 181.44 L848 181.19 L856 180.90 L864 180.57 L872 180.19 L880 179.78 L888 179.32 L896 178.83 L904 178.30 L912 177.73 L920 177.13 L928 176.49 L936 175.83 L944 175.13 L952 174.40 L960 173.65 L968 172.88 L976 172.08 L984 171.25 L992 170.41 L1000 169.56 L1008 168.68 L1016 167.80 L1024 166.90 L1032 165.99 L1040 165.08 L1048 164.16 L1056 163.23 L1064 162.31 L1072 161.38 L1080 160.46 L1088 159.54 L1096 158.63 L1104 157.72 L1112 156.83 L1120 155.94 L1128 155.07 L1136 154.21 L1144 153.37 L1152 152.54 L1160 151.74 L1168 150.95 L1176 150.18 L1184 149.43 L1192 148.70 L1200 148.00 L1208 147.32 L1216 146.67 L1224 146.04 L1232 145.43 L1240 144.85 L1248 144.30 L1256 143.77 L1264 143.27 L1272 142.80 L1280 142.35 L1288 141.92 L1296 141.53 L1304 141.16 L1312 140.81 L1320 140.49 L1328 140.19 L1336 139.91 L1344 139.66 L1352 139.43 L1360 139.21 L1368 139.02 L1376 138.85 L1384 138.70 L1392 138.56 L1400 138.44 L1408 138.34 L1416 138.25 L1424 138.17 L1432 138.11 L1440 138.06 L1448 138.01 L1456 137.98 L1464 137.95 L1472 137.94 L1480 137.92 L1488 137.92 L1496 137.92 L1504 137.92 L1512 137.92 L1520 137.93 L1528 137.94 L1536 137.95 L1544 137.96 L1552 137.97 L1560 137.98 L1568 137.98 L1576 137.99 L1584 138.00 L1592 138.00 L1600 138.00 L1600 220 L0 220 Z"/>
+            </svg>
+            </div>
+        </section>
+
+        <section class="section" id="about">
+            <header class="section-head shell">
+                <h2 class="section-title">About Me</h2>
+            </header>
+
+            <div class="shell about-grid">
+                <figure class="frame">
+                    <img class="frame-photo" src="{% static 'img/portrait.png' %}"
+                         alt="Muhammad Sultan Zidan" width="900" height="900">
+                    <div class="frame-3d" id="viewer-3d"
+                         data-model="{% static 'model/object.fbx' %}" aria-hidden="true"></div>
+                    <figcaption class="frame-tag">Hover for the 3D piece</figcaption>
+                </figure>
+
+                <article class="card about-card">
+                    <h3 class="about-hi">Hello, I'm Muhammad Sultan Zidan</h3>
+                    <p class="card-text">Computer Science student at Universitas Indonesia,
+                        class of 2025, now in my second year at Fasilkom under NPM 2506534876. My
+                        interests sit where software meets visual work.</p>
+                    <p class="card-text">I study S1 Ilmu Komputer in class PBP E and work out of
+                        Depok. I build across the stack, from Django web applications to mobile apps
+                        and games, and most of what I pick up in class ends up in a side project or a
+                        competition entry.</p>
+
+                    <div class="about-foot">
+                        <div class="affil">
+                            <div class="affil-block">
+                                <h4>Education</h4>
+                                <img class="affil-campus" src="{% static 'img/logo/fasilkom-ui.webp' %}"
+                                     alt="Fakultas Ilmu Komputer, Universitas Indonesia">
+                            </div>
+                            <div class="affil-block">
+                                <h4>Organizations</h4>
+                                <div class="affil-logos">
+                                    <img src="{% static 'img/logo/bem-ui.webp' %}"
+                                         alt="BEM Universitas Indonesia" title="Multimedia Developer, BEM UI 2026">
+                                    <img src="{% static 'img/logo/bem-fasilkom-ui.webp' %}"
+                                         alt="BEM Fakultas Ilmu Komputer UI" title="Deputy 1 Media, BEM Fasilkom UI 2026">
+                                    <img src="{% static 'img/logo/ristek-fasilkom-ui.svg' %}"
+                                         alt="RISTEK Fakultas Ilmu Komputer UI" title="RISTEK Fasilkom UI 2026">
+                                </div>
+                            </div>
                         </div>
-                        <div class="meta-row">
-                            <dt>Program</dt>
-                            <dd>S1 Ilmu Komputer</dd>
+
+                        <div class="social">
+                        <a href="https://www.instagram.com/zydanidn/" aria-label="Instagram" title="Instagram">
+                            <img src="{% static 'img/social/instagram.svg' %}" alt="" aria-hidden="true">
+                        </a>
+                        <a href="https://www.linkedin.com/in/muhammadsultanzidan" aria-label="LinkedIn" title="LinkedIn">
+                            <img src="{% static 'img/social/linkedin.svg' %}" alt="" aria-hidden="true">
+                        </a>
+                        <a href="https://github.com/zidanristek/" aria-label="GitHub" title="GitHub">
+                            <img src="{% static 'img/social/github.svg' %}" alt="" aria-hidden="true">
+                        </a>
                         </div>
-                    </dl>
-                    <div class="social-links">
-                        <a href="https://github.com/zidanristek" class="social-link">GitHub</a>
-                        <a href="https://www.linkedin.com/in/muhammad-sultan-zidan-798184347" class="social-link">LinkedIn</a>
-                        <a href="mailto:muhammad.sultan51@ui.ac.id" class="social-link">Email</a>
                     </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section" id="projects">
+            <header class="section-head shell">
+                <h2 class="section-title">Archive Projects</h2>
+            </header>
+
+            <div class="shell project-grid">
+                <article class="card project-card">
+                    <img class="project-cover" src="{% static 'img/projects/nusantara-defense.jpg' %}"
+                         alt="Nusantara Defense title art beside three unit cards and a gameplay screen"
+                         width="880" height="550" loading="lazy">
+                    <div class="project-body">
+                        <p class="card-kind">Roblox</p>
+                        <h3 class="card-heading">Nusantara Defense</h3>
+                        <p class="card-text">A tower defense game that turns regional myths and
+                            iconography into playable units. I wrote the ability system and the three
+                            modes: Story, Infinite, and Challenge.</p>
+                        <ul class="pill-list">
+                            <li class="pill">Roblox Studio</li>
+                            <li class="pill">Lua</li>
+                            <li class="pill">Blender</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article class="card project-card">
+                    <img class="project-cover" src="{% static 'img/projects/urban.jpg' %}"
+                         alt="URBAN landing page next to its merchandise ordering screen"
+                         width="880" height="550" loading="lazy">
+                    <div class="project-body">
+                        <p class="card-kind">Web</p>
+                        <h3 class="card-heading">URBAN</h3>
+                        <p class="card-text">The site for UI Road To Banyumas, the outreach program I
+                            run at Clubban UI. Schedule, materials, and merch orders in one place.</p>
+                        <ul class="pill-list">
+                            <li class="pill">Tailwind</li>
+                            <li class="pill">Gviz</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article class="card project-card">
+                    <img class="project-cover" src="{% static 'img/projects/zidoct.jpg' %}"
+                         alt="ZidoCT translating a spoken sentence from English into Indonesian"
+                         width="880" height="550" loading="lazy">
+                    <div class="project-body">
+                        <p class="card-kind">Windows app</p>
+                        <h3 class="card-heading">ZidoCT</h3>
+                        <p class="card-text">Translates speech inside VRChat while it is being said.
+                            Recognition runs on the device so the delay stays short enough to hold a
+                            conversation.</p>
+                        <ul class="pill-list">
+                            <li class="pill">Faster Whisper</li>
+                            <li class="pill">Tauri</li>
+                            <li class="pill">React</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article class="card project-card">
+                    <img class="project-cover" src="{% static 'img/projects/resik.jpg' %}"
+                         alt="RESIK home screen held in one hand, with pickup and article screens behind it"
+                         width="880" height="550" loading="lazy">
+                    <div class="project-body">
+                        <p class="card-kind">Mobile app</p>
+                        <h3 class="card-heading">RESIK</h3>
+                        <p class="card-text">Photograph a piece of household waste, get it identified,
+                            book a pickup, collect points.</p>
+                        <ul class="pill-list">
+                            <li class="pill">Flutter</li>
+                            <li class="pill">Firebase</li>
+                            <li class="pill">Figma</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article class="card project-card">
+                    <img class="project-cover" src="{% static 'img/projects/pacilator.jpg' %}"
+                         alt="Pacilator drop area for subtitle and document files over its split-face logo"
+                         width="880" height="550" loading="lazy">
+                    <div class="project-body">
+                        <p class="card-kind">Desktop tool</p>
+                        <h3 class="card-heading">Pacilator</h3>
+                        <p class="card-text">Translates documents, subtitles, and video files. Tuned so
+                            the output reads like a person wrote it rather than a dictionary.</p>
+                        <ul class="pill-list">
+                            <li class="pill">Python</li>
+                            <li class="pill">PyQt5</li>
+                            <li class="pill">Selenium</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article class="card project-card">
+                    <img class="project-cover" src="{% static 'img/projects/scera.jpg' %}"
+                         alt="SCERA weekly timetable rebuilt from the UI student portal"
+                         width="880" height="550" loading="lazy">
+                    <div class="project-body">
+                        <p class="card-kind">Desktop tool</p>
+                        <h3 class="card-heading">SCERA</h3>
+                        <p class="card-text">Scrapes the UI student portal and rebuilds my timetable as
+                            something readable.</p>
+                        <ul class="pill-list">
+                            <li class="pill">C#</li>
+                            <li class="pill">WinForms</li>
+                        </ul>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section" id="experience">
+            <header class="section-head shell">
+                <h2 class="section-title">My Experiences</h2>
+            </header>
+
+            <ol class="shell timeline">
+                <li class="tl-item">
+                    <p class="tl-year">2026</p>
+                    <h3 class="tl-title">Vice Director</h3>
+                    <p class="tl-where">PT Wirausaha Daya Optima</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2026</p>
+                    <h3 class="tl-title">Juara Hackathon RISTEK Fasilkom UI</h3>
+                    <p class="tl-where">Biotopia, pendanaan Rp 20 juta</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2026</p>
+                    <h3 class="tl-title">Game Developer</h3>
+                    <p class="tl-where">COMPFEST 18 RISTEK Fasilkom UI</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2026</p>
+                    <h3 class="tl-title">Penerima Pendanaan dan Insentif PKM</h3>
+                    <p class="tl-where">Kementerian Pendidikan Tinggi</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2025</p>
+                    <h3 class="tl-title">Project Officer</h3>
+                    <p class="tl-where">Clubban UI Road to Banyumas</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2025</p>
+                    <h3 class="tl-title">Top 50 dari 627 tim</h3>
+                    <p class="tl-where">BudayaGO! Kemendikbud</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2024</p>
+                    <h3 class="tl-title">Medali perunggu</h3>
+                    <p class="tl-where">International Product Development Mastery</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2023</p>
+                    <h3 class="tl-title">Top 100 dari 2.000 peserta</h3>
+                    <p class="tl-where">Code the Ocean</p>
+                </li>
+
+                <li class="tl-item">
+                    <p class="tl-year">2022</p>
+                    <h3 class="tl-title">Coordinator of ICT</h3>
+                    <p class="tl-where">OSIS SMA Negeri 3 Purwokerto</p>
+                </li>
+            </ol>
+        </section>
+
+        <section class="section" id="skills">
+            <header class="section-head shell">
+                <h2 class="section-title">Core Tech</h2>
+            </header>
+
+            <div class="marquee-wrap" aria-label="Tools and technologies I work with">
+                <div class="marquee marquee-left">
+                    <ul class="marquee-run">
+                        <li><img src="{% static 'img/tech/aftereffect.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aseprite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/blender.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/c++.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/chatgpt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/css.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/davinciresolve.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/discordbot.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/django.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/docker.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/figma.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/Firebase.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/framer.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gemini.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gitwhite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/github.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/golang.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/godot.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/html.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/java.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/js.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aftereffect.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aseprite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/blender.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/c++.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/chatgpt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/css.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/davinciresolve.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/discordbot.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/django.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/docker.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/figma.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/Firebase.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/framer.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gemini.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gitwhite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/github.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/golang.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/godot.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/html.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/java.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/js.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aftereffect.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aseprite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/blender.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/c++.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/chatgpt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/css.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/davinciresolve.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/discordbot.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/django.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/docker.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/figma.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/Firebase.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/framer.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gemini.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gitwhite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/github.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/golang.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/godot.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/html.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/java.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/js.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aftereffect.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/aseprite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/blender.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/c++.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/chatgpt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/css.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/davinciresolve.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/discordbot.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/django.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/docker.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/figma.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/Firebase.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/framer.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gemini.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/gitwhite.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/github.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/golang.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/godot.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/html.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/java.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/js.png' %}" alt=""></li>
+                    </ul>
+                </div>
+
+                <div class="marquee marquee-right">
+                    <ul class="marquee-run">
+                        <li><img src="{% static 'img/tech/jwt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/lua.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/mysql.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/next.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/photoshop.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/php.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/postger.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/premierepro.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/pytorch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/react.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/robloxstudio.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/scratch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/supabase.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tailwind.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tensorflow.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/threejs.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/ts.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unity.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unrealengine.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vercel.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vs.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/jwt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/lua.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/mysql.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/next.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/photoshop.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/php.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/postger.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/premierepro.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/pytorch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/react.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/robloxstudio.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/scratch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/supabase.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tailwind.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tensorflow.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/threejs.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/ts.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unity.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unrealengine.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vercel.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vs.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/jwt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/lua.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/mysql.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/next.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/photoshop.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/php.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/postger.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/premierepro.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/pytorch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/react.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/robloxstudio.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/scratch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/supabase.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tailwind.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tensorflow.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/threejs.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/ts.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unity.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unrealengine.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vercel.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vs.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/jwt.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/lua.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/mysql.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/next.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/photoshop.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/php.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/postger.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/premierepro.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/pytorch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/react.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/robloxstudio.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/scratch.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/supabase.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tailwind.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/tensorflow.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/threejs.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/ts.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unity.webp' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/unrealengine.png' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vercel.svg' %}" alt=""></li>
+                        <li><img src="{% static 'img/tech/vs.svg' %}" alt=""></li>
+                    </ul>
                 </div>
             </div>
         </section>
     </main>
 
     <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2026 Muhammad Sultan Zidan. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        <div class="shell footer-inner">
+            <p class="footer-name">Muhammad Sultan Zidan</p>
+            <p class="footer-note">Fakultas Ilmu Komputer, Universitas Indonesia</p>
+            <div class="footer-links">
+                <a href="https://github.com/zidanristek">GitHub</a>
+                <a href="https://www.linkedin.com/in/muhammad-sultan-zidan-798184347">LinkedIn</a>
+                <a href="mailto:muhammad.sultan51@ui.ac.id">Email</a>
+            </div>
         </div>
     </footer>
+    <script src="{% static 'js/hero.js' %}"></script>
+    <script src="{% static 'js/nav.js' %}"></script>
+    <script type="module" src="{% static 'js/viewer.js' %}"></script>
 </body>
 </html>
