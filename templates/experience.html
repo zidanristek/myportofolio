@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Experience - {{ name }}{% endblock %}
+
+{% block content %}
+        <section class="section experience-section" id="experience">
+            <header class="section-head shell">
+                <p class="section-kicker">Perjalanan saya sejauh ini</p>
+                <h1 class="section-title">Experience</h1>
+            </header>
+
+            <div class="shell experience-grid">
+                {% for experience in experience_list %}
+                    <article class="card experience-card">
+                        <span class="experience-category">
+                            {{ experience.get_category_display }}
+                        </span>
+                        <h2>{{ experience.title }}</h2>
+                        <p class="experience-description">
+                            {{ experience.description }}
+                        </p>
+
+                        {% if experience.is_ongoing %}
+                            <p class="experience-status is-ongoing">Sedang berlangsung</p>
+                        {% else %}
+                            <p class="experience-status">Selesai</p>
+                        {% endif %}
+                    </article>
+                {% empty %}
+                    <p class="empty-state">
+                        Belum ada pengalaman yang ditambahkan.
+                    </p>
+                {% endfor %}
+            </div>
+        </section>
+{% endblock %}
