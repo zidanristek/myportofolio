@@ -8,11 +8,12 @@ Website portofolio pribadi untuk mata kuliah Pemrograman Berbasis Platform
 (CSGE602022), Fakultas Ilmu Komputer Universitas Indonesia, Semester Gasal
 2026/2027.
 
-Satu halaman dengan empat bagian: hero, About Me, Archive Projects, My
-Experiences, dan Core Tech. Sisi server memakai Django. Tampilannya HTML5 dan
-CSS3, ditambah sedikit JavaScript untuk taburan bintang, efek parallax di hero,
-menu layar sempit, dan penampil objek 3D. Belum menyentuh basis data maupun
-arsitektur MVT.
+Dua halaman. Halaman profil di `/` berisi hero, About Me, Archive Projects, dan
+Core Tech. Halaman `/experience/` menampilkan daftar pengalaman yang diambil dari
+basis data. Sisi server memakai Django dengan pola MVT: model `Experience`
+menyimpan datanya, view menyiapkan context, template merendernya. Tampilannya
+HTML5 dan CSS3, ditambah sedikit JavaScript untuk taburan bintang, efek parallax
+di hero, menu layar sempit, dan penampil objek 3D.
 
 Versi daring: <https://muhammad-sultan51-myportofolio.pws.cs.ui.ac.id>
 
@@ -25,6 +26,7 @@ source env/bin/activate         # macOS dan Linux
 
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py loaddata experience
 python manage.py runserver
 ```
 
@@ -44,8 +46,12 @@ proyek beralih ke PostgreSQL memakai kredensial dari `.env.prod`.
 
 | Jalur | Isi |
 | --- | --- |
-| `portofolio/` | konfigurasi Django, routing, dan view |
-| `templates/index.html` | seluruh halaman, satu berkas |
+| `portofolio/` | konfigurasi Django dan routing tingkat proyek |
+| `main/` | aplikasi utama: model `Experience`, view, routing, dan test |
+| `main/fixtures/experience.json` | isi awal tabel `Experience`, dimuat dengan `loaddata` |
+| `templates/base.html` | kerangka bersama: head, navbar, dan footer |
+| `templates/index.html` | halaman profil |
+| `templates/experience.html` | daftar pengalaman |
 | `static/css/style.css` | seluruh gaya, satu berkas |
 | `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar dan menu, `viewer.js` penampil 3D |
 | `static/img/` | foto, logo, sampul proyek, ikon teknologi |
@@ -67,6 +73,7 @@ Pesan commit mengikuti format Conventional Commits.
 | --- | --- |
 | Tutorial 0 | repositori Git, virtual environment, proyek Django pertama |
 | Tutorial 01 | halaman About Me, WhiteNoise, deploy pertama ke PWS |
+| Tutorial 02 | aplikasi `main`, model `Experience`, data profil pindah ke context, halaman `/experience/`, routing dua level, dan enam unit test |
 | Tugas 1 | tiga section baru (Archive Projects, My Experiences, Core Tech), navigasi antar section, menu layar sempit, hero berlapis dengan parallax, dan penampil objek 3D pada foto profil |
 
 ## Pertanyaan reflektif
