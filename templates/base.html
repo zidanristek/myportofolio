@@ -1,0 +1,62 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personal portfolio of Muhammad Sultan Zidan, Computer Science undergraduate at Universitas Indonesia.">
+    <title>{% block title %}{{ name }} - Portfolio{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <nav class="nav" aria-label="Main navigation">
+        <div class="nav-inner">
+            <a class="brand" href="{% url 'main:show_main' %}" aria-label="Zido Games, back to top">
+                <img class="brand-logo" src="{% static 'img/zido-games.svg' %}" alt="Zido Games">
+            </a>
+            <div class="nav-links">
+                <a href="{% url 'main:show_main' %}#about"><i class="dia"></i>About</a>
+                <a href="{% url 'main:show_main' %}#projects"><i class="dia"></i>Projects</a>
+                <a href="{% url 'main:show_experience' %}"><i class="dia"></i>Experience</a>
+                <a href="{% url 'main:show_main' %}#skills"><i class="dia"></i>Skills</a>
+                <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
+            </div>
+
+            <button class="nav-burger" id="burger" type="button"
+                    aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+                <span></span><span></span><span></span>
+            </button>
+
+        </div>
+    </nav>
+
+    <div class="nav-menu is-closed" id="nav-menu">
+        <a href="{% url 'main:show_main' %}#about"><i class="dia"></i>About</a>
+        <a href="{% url 'main:show_main' %}#projects"><i class="dia"></i>Projects</a>
+        <a href="{% url 'main:show_experience' %}"><i class="dia"></i>Experience</a>
+        <a href="{% url 'main:show_main' %}#skills"><i class="dia"></i>Skills</a>
+        <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
+    </div>
+
+    <main>
+{% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="shell footer-inner">
+            <p class="footer-name">{{ name }}</p>
+            <p class="footer-note">Fakultas Ilmu Komputer, Universitas Indonesia</p>
+            <div class="footer-links">
+                <a href="https://github.com/zidanristek">GitHub</a>
+                <a href="https://www.linkedin.com/in/muhammad-sultan-zidan-798184347">LinkedIn</a>
+                <a href="mailto:muhammad.sultan51@ui.ac.id">Email</a>
+            </div>
+        </div>
+    </footer>
+    <script src="{% static 'js/nav.js' %}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

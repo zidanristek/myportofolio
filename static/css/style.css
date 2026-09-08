@@ -905,116 +905,89 @@ body.menu-open {
 /* ==========================================================================
    Experience
 
-   Zigzag di sekitar sumbu tengah. Penanda butir ganjil duduk 4rem di kiri
-   sumbu, butir genap 4rem di kanannya, jadi selisihnya 8rem. Garis miring
-   tiap butir membentang persis 8rem itu, dari penandanya sendiri ke penanda
-   butir berikutnya. Karena butir bersentuhan tanpa margin, tinggi butir sama
-   dengan jarak antar penanda, jadi sudut miringnya menyesuaikan sendiri.
+   Kartunya meminjam .card dari Archive Projects supaya kedua halaman terasa
+   satu situs. Statusnya didorong ke dasar kartu dengan margin-top otomatis,
+   trik yang sama dipakai daftar tag di kartu proyek, jadi baris bawahnya
+   tetap rata walau panjang deskripsinya berbeda-beda.
    ========================================================================== */
 
-.timeline {
-    position: relative;
-    list-style: none;
+/* Halaman ini tidak punya hero yang menyelipkan diri di bawah navbar, jadi
+   ruang untuk navbar disediakan sendiri. */
+
+.experience-section {
+    padding-top: 8rem;
 }
 
-.tl-item {
-    position: relative;
-    width: 50%;
-    min-height: 7rem;
-    padding: 0 5.5rem 2rem 0;
-    text-align: right;
-}
-
-.tl-item:nth-child(even) {
-    margin-left: 50%;
-    padding: 0 0 2rem 5.5rem;
-    text-align: left;
-}
-
-.tl-item:last-child {
-    min-height: 0;
-    padding-bottom: 0;
-}
-
-.tl-item::before {
-    content: "";
-    position: absolute;
-    z-index: 2;
-    top: 1.25rem;
-    right: 4rem;
-    margin-right: -6.5px;
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
-    background: var(--bg-main);
-    border: 2px solid var(--green-400);
-    transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.tl-item:nth-child(even)::before {
-    right: auto;
-    left: 4rem;
-    margin-right: 0;
-    margin-left: -6.5px;
-}
-
-.tl-item:hover::before {
-    background: var(--green-400);
-    transform: scale(1.3);
-}
-
-/* Garis miring dibuat dari gradasi diagonal, bukan border, supaya sudutnya
-   ikut berubah mengikuti tinggi butir tanpa perlu tahu tingginya. */
-
-.tl-item::after {
-    content: "";
-    position: absolute;
-    z-index: 1;
-    top: 1.65rem;
-    right: 0;
-    width: 8rem;
-    height: 100%;
-    margin-right: -4rem;
-    background: linear-gradient(to bottom left,
-        transparent calc(50% - 0.9px),
-        rgba(143, 199, 239, 0.45) calc(50% - 0.9px),
-        rgba(143, 199, 239, 0.45) calc(50% + 0.9px),
-        transparent calc(50% + 0.9px));
-}
-
-.tl-item:nth-child(even)::after {
-    right: auto;
-    left: 0;
-    margin-right: 0;
-    margin-left: -4rem;
-    background: linear-gradient(to bottom right,
-        transparent calc(50% - 0.9px),
-        rgba(143, 199, 239, 0.45) calc(50% - 0.9px),
-        rgba(143, 199, 239, 0.45) calc(50% + 0.9px),
-        transparent calc(50% + 0.9px));
-}
-
-.tl-item:last-child::after {
-    display: none;
-}
-
-.tl-year {
+.section-kicker {
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--green-400);
 }
 
-.tl-title {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--n-100);
-    margin: 0.15rem 0 0.2rem;
+.experience-section .section-title {
+    margin-top: 0.5rem;
 }
 
-.tl-where {
-    font-size: 0.9rem;
+.experience-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.experience-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.4rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.experience-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(63, 203, 132, 0.55);
+}
+
+/* Label kategori datang dari get_category_display, jadi huruf besarnya
+   diurus CSS. Kalau ditulis kapital di template, nilainya tidak lagi cocok
+   dengan yang dikirim model. */
+
+.experience-category {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green-400);
+}
+
+.experience-card h2 {
+    margin: 0.5rem 0 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--n-100);
+}
+
+.experience-description,
+.empty-state {
+    font-size: 0.95rem;
     color: var(--n-300);
+}
+
+.experience-status {
+    margin-top: auto;
+    padding-top: 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--n-400);
+}
+
+.experience-status.is-ongoing {
+    color: var(--green-400);
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
 }
 
 /* ==========================================================================
@@ -1172,56 +1145,15 @@ body.menu-open {
     .social {
         justify-content: center;
     }
-
-    /* Linimasa: satu rel lurus di tengah, semua teks rata tengah */
-    /* Teks rata tengah, jadi rel tidak boleh membentang penuh atau dia akan
-       menembus tulisan. Penanda dan potongan relnya duduk di sela antar butir. */
-    .tl-item,
-    .tl-item:nth-child(even) {
-        width: 100%;
-        min-height: 0;
-        margin-left: 0;
-        padding: 0 0 3rem;
-        text-align: center;
-    }
-
-    .tl-item:last-child {
-        padding-bottom: 0;
-    }
-
-    /* Butir terakhir tidak perlu penanda, tidak ada yang menyusul */
-    .tl-item:last-child::before {
-        display: none;
-    }
-
-    .tl-item::before,
-    .tl-item:nth-child(even)::before {
-        top: auto;
-        bottom: 1.35rem;
-        left: 50%;
-        right: auto;
-        margin-left: -6.5px;
-        margin-right: 0;
-    }
-
-    .tl-item::after,
-    .tl-item:nth-child(even)::after {
-        top: auto;
-        right: auto;
-        bottom: 0;
-        left: 50%;
-        width: 2px;
-        height: 1rem;
-        margin-left: -1px;
-        margin-right: 0;
-        background: rgba(143, 199, 239, 0.4);
-    }
-
 }
 
 @media (max-width: 760px) {
     .section {
         padding: 3.5rem 0;
+    }
+
+    .experience-section {
+        padding-top: 7rem;
     }
 
     /* Navbar tetap satu baris. Tautannya digeser sendiri kalau tidak muat,

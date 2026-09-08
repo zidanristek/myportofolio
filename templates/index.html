@@ -1,14 +1,7 @@
-{% load static %}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Personal portfolio of Muhammad Sultan Zidan, Computer Science undergraduate at Universitas Indonesia.">
-    <title>Muhammad Sultan Zidan - Portfolio</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_extra %}
     <script type="importmap">
     {
         "imports": {
@@ -17,38 +10,9 @@
         }
     }
     </script>
-</head>
-<body>
-    <nav class="nav" aria-label="Main navigation">
-        <div class="nav-inner">
-            <a class="brand" href="#profile" aria-label="Zido Games, back to top">
-                <img class="brand-logo" src="{% static 'img/zido-games.svg' %}" alt="Zido Games">
-            </a>
-            <div class="nav-links">
-                <a href="#about"><i class="dia"></i>About</a>
-                <a href="#projects"><i class="dia"></i>Projects</a>
-                <a href="#experience"><i class="dia"></i>Experience</a>
-                <a href="#skills"><i class="dia"></i>Skills</a>
-                <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
-            </div>
+{% endblock %}
 
-            <button class="nav-burger" id="burger" type="button"
-                    aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
-                <span></span><span></span><span></span>
-            </button>
-
-        </div>
-    </nav>
-
-        <div class="nav-menu is-closed" id="nav-menu">
-            <a href="#about"><i class="dia"></i>About</a>
-            <a href="#projects"><i class="dia"></i>Projects</a>
-            <a href="#experience"><i class="dia"></i>Experience</a>
-            <a href="#skills"><i class="dia"></i>Skills</a>
-            <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
-        </div>
-
-    <main>
+{% block content %}
         <section class="hero" id="profile">
             <div class="layer sky-glow" data-speed="0.05" aria-hidden="true"></div>
             <div class="layer stars" data-speed="0.08" id="stars" aria-hidden="true"></div>
@@ -110,12 +74,10 @@
                 </figure>
 
                 <article class="card about-card">
-                    <h3 class="about-hi">Hello, I'm Muhammad Sultan Zidan</h3>
-                    <p class="card-text">Computer Science student at Universitas Indonesia,
-                        class of 2025, now in my second year at Fasilkom under NPM 2506534876. My
-                        interests sit where software meets visual work.</p>
-                    <p class="card-text">I study S1 Ilmu Komputer in class PBP E and work out of
-                        Depok. I build across the stack, from Django web applications to mobile apps
+                    <h3 class="about-hi">Hello, I'm {{ name }}</h3>
+                    <p class="card-text bio">{{ bio }}</p>
+                    <p class="card-text">I study {{ study_program }} in class PBP E under NPM
+                        {{ npm }}, and work out of Depok. I build across the stack, from Django web applications to mobile apps
                         and games, and most of what I pick up in class ends up in a side project or a
                         competition entry.</p>
 
@@ -263,68 +225,6 @@
                     </div>
                 </article>
             </div>
-        </section>
-
-        <section class="section" id="experience">
-            <header class="section-head shell">
-                <h2 class="section-title">My Experiences</h2>
-            </header>
-
-            <ol class="shell timeline">
-                <li class="tl-item">
-                    <p class="tl-year">2026</p>
-                    <h3 class="tl-title">Vice Director</h3>
-                    <p class="tl-where">PT Wirausaha Daya Optima</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2026</p>
-                    <h3 class="tl-title">Juara Hackathon RISTEK Fasilkom UI</h3>
-                    <p class="tl-where">Biotopia, pendanaan Rp 20 juta</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2026</p>
-                    <h3 class="tl-title">Game Developer</h3>
-                    <p class="tl-where">COMPFEST 18 RISTEK Fasilkom UI</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2026</p>
-                    <h3 class="tl-title">Penerima Pendanaan dan Insentif PKM</h3>
-                    <p class="tl-where">Kementerian Pendidikan Tinggi</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2025</p>
-                    <h3 class="tl-title">Project Officer</h3>
-                    <p class="tl-where">Clubban UI Road to Banyumas</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2025</p>
-                    <h3 class="tl-title">Top 50 dari 627 tim</h3>
-                    <p class="tl-where">BudayaGO! Kemendikbud</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2024</p>
-                    <h3 class="tl-title">Medali perunggu</h3>
-                    <p class="tl-where">International Product Development Mastery</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2023</p>
-                    <h3 class="tl-title">Top 100 dari 2.000 peserta</h3>
-                    <p class="tl-where">Code the Ocean</p>
-                </li>
-
-                <li class="tl-item">
-                    <p class="tl-year">2022</p>
-                    <h3 class="tl-title">Coordinator of ICT</h3>
-                    <p class="tl-where">OSIS SMA Negeri 3 Purwokerto</p>
-                </li>
-            </ol>
         </section>
 
         <section class="section" id="skills">
@@ -512,21 +412,9 @@
                 </div>
             </div>
         </section>
-    </main>
+{% endblock %}
 
-    <footer class="site-footer">
-        <div class="shell footer-inner">
-            <p class="footer-name">Muhammad Sultan Zidan</p>
-            <p class="footer-note">Fakultas Ilmu Komputer, Universitas Indonesia</p>
-            <div class="footer-links">
-                <a href="https://github.com/zidanristek">GitHub</a>
-                <a href="https://www.linkedin.com/in/muhammad-sultan-zidan-798184347">LinkedIn</a>
-                <a href="mailto:muhammad.sultan51@ui.ac.id">Email</a>
-            </div>
-        </div>
-    </footer>
+{% block scripts %}
     <script src="{% static 'js/hero.js' %}"></script>
-    <script src="{% static 'js/nav.js' %}"></script>
     <script type="module" src="{% static 'js/viewer.js' %}"></script>
-</body>
-</html>
+{% endblock %}
