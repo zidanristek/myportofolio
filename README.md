@@ -132,16 +132,41 @@ Pesan commit mengikuti format Conventional Commits.
 
 ### Tugas 2
 
-1. [TK]
-2. [TK]
-3. [TK]
+1. Permintaan ke `/projects/` pertama kali ditangani `portofolio/urls.py` yang
+   sengaja tidak memilih view apa pun melainkan meneruskan sisa path lewat
+   `include("main.urls")` supaya aplikasi bisa dipasang di prefix lain tanpa
+   menyentuh konfigurasi proyek, lalu `main/urls.py` memetakannya ke
+   `show_projects` yang memanggil `Project.objects.all()` dan menyerahkan
+   hasilnya ke `projects.html` sebagai `project_list`, dan pembagian berlapis
+   itulah yang membuat template sama sekali tidak perlu tahu datanya berasal
+   dari basis data karena yang dia terima hanya objek yang sudah siap dirender.
+
+2. Enam kartu proyek yang dulu saya tulis satu per satu di `index.html` punya
+   struktur `<article>` yang persis sama sehingga satu perubahan bentuk kartu
+   harus saya salin enam kali dan menambah proyek berarti menyunting markup
+   padahal yang bertambah sebenarnya data, sedangkan setelah dipindah ke model
+   bentuk kartunya cukup ditulis sekali lalu diisi lewat perulangan sehingga
+   urutan tinggal diatur `Meta.ordering` alih-alih memindah blok HTML, dan yang
+   paling terasa buat pemeliharaan adalah saya jadi bisa menulis test yang
+   langsung merah kalau suatu saat data proyek menyelinap balik ke halaman
+   profil.
+
+3. `makemigrations` hanya membandingkan `models.py` dengan migrasi yang sudah
+   ada lalu menulis berkas instruksi perubahannya tanpa menyentuh basis data
+   sedangkan `migrate` yang benar-benar menjalankan instruksi tersebut, dan
+   pemisahan itu baru terasa gunanya waktu saya menambahkan field `position` ke
+   `Experience` supaya urutan kartu bisa saya tentukan sendiri tanpa memalsukan
+   tanggal, karena berkas `0003` sudah lahir tetapi halaman Experience tetap
+   error sampai `migrate` dijalankan dan kolomnya benar-benar terbentuk di
+   tabel.
 
 ## Penggunaan AI
 
 Saya memakai AI dalam pengerjaan tugas ini. Berikut bagian mana saja dan
-sebatas apa.
+sebatas apa. Alat yang dipakai sejak awal semester sama, yaitu Claude dan
+sebelumnya ChatGPT untuk tanya jawab konsep.
 
-**Alat yang dipakai.** Claude, dan sebelumnya ChatGPT untuk tanya jawab konsep.
+### Tugas 1
 
 **Cara saya memakainya.** Polanya selalu dua tahap. Saya belajar dulu dari
 Claude sampai paham apa yang sebenarnya terjadi, baru saya minta Claude yang
@@ -189,3 +214,39 @@ hasilnya di layar dan memutuskan benar atau tidak.
 **Kalau ingin memverifikasi.** Riwayat commit di repositori ini memakai
 Conventional Commits dan dipecah per perubahan, jadi urutan pengerjaannya bisa
 ditelusuri dari `git log`.
+
+### Tugas 2
+
+Bagian MVT-nya tidak banyak saya serahkan ke AI. Model, view, routing, dan
+migrasi polanya sudah jelas dari Tutorial 02, jadi saya tinggal mengikuti. Yang
+betul-betul merepotkan justru tampilan carousel di halaman Experience. Saya
+beberapa kali bertanya ke Claude sebagai panduan, lalu hasilnya saya ubah
+sendiri sampai geserannya terasa benar.
+
+Untuk materi baru saya selalu minta penjelasan konsep lebih dulu, baru
+implementasi. Waktu memutuskan urutan tampil kartu, saya tanya dulu kenapa
+urutan sebaiknya disimpan sebagai kolom ketimbang dihitung dari tanggal, dan
+jawabannya yang membuat saya menambahkan field `position` alih-alih memundurkan
+tanggal supaya kebetulan terurut. Waktu menggarap carousel, saya minta
+dijelaskan dulu bagaimana `scroll-snap` menentukan titik berhenti, baru saya
+atur sendiri lebar slide dan padding kiri kanannya sampai slide pertama bisa
+sampai ke tengah. Untuk perbaikan tampilan polanya berbeda. Saya sebutkan
+gejalanya saja, biarkan AI menebak penyebabnya, lalu saya buka halamannya dan
+periksa sendiri apakah tebakannya benar.
+
+Ada usulan menambahkan label pada kartu yang tidak saya pakai. Portofolio yang
+isinya kebanyakan teks tidak enak dilihat, dan label semacam itu ujungnya cuma
+bikin halaman terasa dikerjakan mesin. Gambar pengalaman dan sampul proyek
+semuanya saya masukkan sendiri, begitu juga seluruh isi teksnya.
+
+Keterbatasannya masih mirip Tugas 1. Isi awal tabel sempat saya taruh di dalam
+berkas migrasi, dan itu justru saran yang saya dapat waktu bertanya, alasannya
+supaya datanya ikut terpasang otomatis saat deploy. Setelah dijalankan, tiga
+test dari Tutorial 02 langsung merah. Penyebabnya migrasi juga dijalankan di
+basis data test, jadi baris-baris tadi ikut terbawa dan merusak pemeriksaan
+yang menuntut tabel kosong. Saya ganti pendekatannya ke fixture yang dimuat
+terpisah, dan keenam test Tutorial 02 bisa dipakai apa adanya tanpa satu huruf
+pun diubah. Hal kecil juga terjadi waktu saya menambahkan tautan Home ke
+navbar. Yang masuk malah dua, dan baru ketahuan setelah saya lihat halamannya.
+Kesimpulan saya sama seperti Tugas 1. Kodenya cepat jadi, tapi yang menentukan
+benar atau tidak tetap saya, setelah melihat hasilnya di layar.
