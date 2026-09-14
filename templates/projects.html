@@ -9,11 +9,27 @@
                 <h1 class="section-title">Archive Projects</h1>
             </header>
 
+            <div class="shell project-toolbar">
+                <form method="get" action="{% url 'main:show_projects' %}" class="project-search">
+                    <input type="search" name="title" value="{{ title_query }}"
+                           class="project-search-input"
+                           placeholder="Cari nama proyek"
+                           aria-label="Cari nama proyek">
+                    <button type="submit" class="btn btn-secondary btn-sm">Cari</button>
+                </form>
+                <a href="{% url 'main:create_project' %}" class="btn btn-primary btn-sm">Tambah Proyek</a>
+            </div>
+
             <div class="shell project-grid">
                 {% for project in project_list %}
                     <article class="card project-card">
-                        <img class="project-cover" src="{% static project.cover %}"
-                             alt="{{ project.cover_alt }}" width="880" height="550" loading="lazy">
+                        {% if project.cover %}
+                            <img class="project-cover" src="{% static project.cover %}"
+                                 alt="{{ project.cover_alt }}" width="880" height="550" loading="lazy">
+                        {% elif project.project_image_url %}
+                            <img class="project-cover" src="{{ project.project_image_url }}"
+                                 alt="Sampul {{ project.title }}" width="880" height="550" loading="lazy">
+                        {% endif %}
                         <div class="project-body">
                             <p class="card-kind">{{ project.get_category_display }}</p>
                             <h2 class="card-heading">{{ project.title }}</h2>
@@ -23,10 +39,20 @@
                                     <li class="pill">{{ tech }}</li>
                                 {% endfor %}
                             </ul>
+                            <div class="project-actions">
+                                {% if project.project_url %}
+                                    <a href="{{ project.project_url }}" class="btn btn-secondary btn-sm">Lihat proyek</a>
+                                {% endif %}
+                                {% include "components/project_delete_modal.html" with project=project %}
+                            </div>
                         </div>
                     </article>
                 {% empty %}
-                    <p class="empty-state">Belum ada proyek yang ditambahkan.</p>
+                    {% if title_query %}
+                        <p class="empty-state">Tidak ada proyek dengan nama tersebut.</p>
+                    {% else %}
+                        <p class="empty-state">Belum ada proyek yang ditambahkan.</p>
+                    {% endif %}
                 {% endfor %}
             </div>
         </section>
