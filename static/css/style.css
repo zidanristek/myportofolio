@@ -94,7 +94,7 @@ body {
     transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-/* Digeser ke atas saat pembaca menggulir turun, kembali saat menggulir naik */
+/* Slides up on scroll down, comes back on scroll up */
 
 .nav.is-hidden {
     transform: translateY(-180%);
@@ -183,7 +183,7 @@ body {
 }
 
 /* ==========================================================================
-   Menu mobile
+   Mobile menu
    ========================================================================== */
 
 .nav-burger {
@@ -209,7 +209,7 @@ body {
     margin-top: 5px;
 }
 
-/* Tiga garis melipat jadi silang saat menunya terbuka */
+/* The three bars fold into a cross while the menu is open */
 
 .nav-burger[aria-expanded="true"] span:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
@@ -258,8 +258,8 @@ body {
     height: 11px;
 }
 
-/* .nav-menu a menang spesifisitas atas .btn-external, jadi warnanya
-   disebut ulang di sini supaya tulisan Contact tidak hilang di tombol terang. */
+/* .nav-menu a outranks .btn-external, so the colour is restated here or
+   the Contact label disappears into the light button. */
 
 .nav-menu .btn-external {
     margin-top: 0.75rem;
@@ -268,8 +268,7 @@ body {
     color: var(--blue-800);
 }
 
-/* Kelas ini dipasang di <body> saat menu terbuka supaya halaman di belakangnya
-   tidak ikut tergulir. */
+/* Set on <body> while the menu is open so the page behind cannot scroll */
 
 body.menu-open {
     overflow: hidden;
@@ -447,9 +446,9 @@ body.menu-open {
     opacity: 0.55;
 }
 
-/* Gedung ikut aliran flex hero dan mengisi sisa ruang di bawah isi hero.
-   Karena keduanya item flex yang sama, puncaknya tidak mungkin menabrak
-   tombol di ukuran layar mana pun. */
+/* The building is a flex item filling whatever height the hero text leaves.
+   Both being flex items is what makes a collision structurally impossible,
+   at any viewport height. Earlier vh-based attempts all broke somewhere. */
 
 .building {
     position: relative;
@@ -457,8 +456,8 @@ body.menu-open {
     flex: 1 1 auto;
     min-height: 0;
 
-    /* Ditarik ke atas supaya puncaknya lebih tinggi. Isi hero ber-z-index 20
-       jadi tetap terbaca walau gedungnya lewat di belakang tombol. */
+    /* Pulled up so the roof sits higher. Hero content is z-index 20, so it
+       stays readable even where the building passes behind the buttons. */
     margin-top: -5vh;
     margin-bottom: -1.5rem;
     filter: drop-shadow(0 34px 54px rgba(1, 21, 43, 0.7));
@@ -567,9 +566,8 @@ body.menu-open {
     animation: wheel 1.8s ease-in-out infinite;
 }
 
-/* Lapisan terdepan: dua gelombang yang melebur ke latar section di bawahnya.
-   Gelombang kedua memakai warna --bg-main persis, jadi tidak ada garis potong
-   antara hero dan section berikutnya. */
+/* Front layer: two waves that dissolve into the section below. The second
+   wave is exactly --bg-main, so hero and section share no visible seam. */
 
 .foreground {
     position: absolute;
@@ -705,8 +703,8 @@ body.menu-open {
     align-items: stretch;
 }
 
-/* Bingkai foto: pelat miring di belakang potret, dikelilingi garis tipis.
-   Sengaja bukan kartu, supaya tidak menyerupai kartu di sebelahnya. */
+/* Photo frame: a tilted plate behind the portrait inside a hairline border.
+   Deliberately not a card, so it does not echo the card beside it. */
 
 .frame {
     position: relative;
@@ -905,14 +903,12 @@ body.menu-open {
 /* ==========================================================================
    Experience
 
-   Kartunya meminjam .card dari Archive Projects supaya kedua halaman terasa
-   satu situs. Statusnya didorong ke dasar kartu dengan margin-top otomatis,
-   trik yang sama dipakai daftar tag di kartu proyek, jadi baris bawahnya
-   tetap rata walau panjang deskripsinya berbeda-beda.
+   Cards borrow .card from Archive Projects so both pages read as one site.
+   Status is pushed to the bottom with an auto margin, the same trick the
+   project tag lists use, so bottom edges line up despite uneven text.
    ========================================================================== */
 
-/* Halaman ini tidak punya hero yang menyelipkan diri di bawah navbar, jadi
-   ruang untuk navbar disediakan sendiri. */
+/* No hero tucks under the fixed navbar here, so this page reserves its own room */
 
 .experience-section {
     padding-top: 8rem;
@@ -948,9 +944,8 @@ body.menu-open {
     border-color: rgba(63, 203, 132, 0.55);
 }
 
-/* Label kategori datang dari get_category_display, jadi huruf besarnya
-   diurus CSS. Kalau ditulis kapital di template, nilainya tidak lagi cocok
-   dengan yang dikirim model. */
+/* The label comes from get_category_display, so CSS does the uppercasing.
+   Hardcoding caps in the template would stop matching the model value. */
 
 .experience-category {
     font-size: 0.72rem;
@@ -993,8 +988,8 @@ body.menu-open {
 /* ==========================================================================
    Core tech
 
-   Dua jalur berjalan berlawanan arah. Daftarnya digandakan di HTML lalu
-   digeser sejauh separuh lebar, jadi sambungannya tidak pernah terlihat.
+   Two rows run in opposite directions. The list is duplicated in the HTML
+   and shifted by half its width, so the seam is never visible.
    ========================================================================== */
 
 .marquee-wrap {
@@ -1022,7 +1017,7 @@ body.menu-open {
     animation-duration: 54s;
 }
 
-/* Jalur ini murni hiasan, jadi tidak menanggapi kursor sama sekali */
+/* Purely decorative, so it ignores the pointer entirely */
 
 .marquee-run img {
     display: block;
@@ -1037,8 +1032,8 @@ body.menu-open {
     to { transform: translateX(-50%); }
 }
 
-/* Empat salinan di HTML, digeser separuh. Dua salinan sisanya menutupi layar
-   selebar apa pun, jadi tidak pernah ada celah di kanan. */
+/* Four copies in the HTML, shifted by half. The spare two cover any screen
+   width, so no gap ever opens on the right. */
 
 @media (prefers-reduced-motion: reduce) {
     .marquee-run {
@@ -1113,8 +1108,8 @@ body.menu-open {
         gap: 1.5rem;
     }
 
-    /* Bingkai tidak punya isi yang mengalir, jadi lebarnya harus disebut.
-       Tanpa ini kotaknya menciut jadi beberapa piksel. */
+    /* Every child is absolutely positioned, so the frame has nothing to size
+       itself from. Without explicit numbers it collapses to a few pixels. */
     .frame {
         width: 100%;
         max-width: 280px;
@@ -1156,8 +1151,7 @@ body.menu-open {
         padding-top: 7rem;
     }
 
-    /* Navbar tetap satu baris. Tautannya digeser sendiri kalau tidak muat,
-       jadi tingginya tidak pernah menumpuk jadi tiga baris seperti sebelumnya. */
+    /* Navbar stays one row. Links give way instead of stacking three high. */
     .nav {
         padding: 0 0.9rem;
     }
@@ -1167,7 +1161,7 @@ body.menu-open {
         padding: 0.5rem 0.55rem 0.5rem 0.9rem;
     }
 
-    /* Di layar sempit tautannya pindah ke panel, tombol tiga garis yang tampil */
+    /* On narrow screens the links move into the panel and the burger shows */
     .nav-links {
         display: none;
     }

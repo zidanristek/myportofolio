@@ -32,8 +32,8 @@ DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# Host deployment dibaca dari environment supaya berkas ini tetap sama di lokal
-# maupun di server. PWS_HOST diisi manual, dua sisanya diisi Vercel sendiri.
+# Deployment hosts come from the environment so this file is identical on a
+# laptop and on a server. PWS_HOST is set by hand, Vercel fills in its own.
 DEPLOYMENT_HOSTS = [
     host
     for host in (

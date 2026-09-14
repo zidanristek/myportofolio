@@ -20,8 +20,8 @@ def show_main(request):
 def show_experience(request):
     context = {
         "name": "Muhammad Sultan Zidan",
-        # Tanpa order_by, urutan baris diserahkan ke basis data. SQLite lokal
-        # kebetulan mengembalikan urutan masuk, PostgreSQL di PWS belum tentu.
+        # Without order_by the row order is left to the database. Local SQLite
+        # happens to return insertion order, PostgreSQL on PWS need not.
         "experience_list": Experience.objects.all().order_by("-started_at"),
     }
     return render(request, "experience.html", context)
