@@ -1169,6 +1169,16 @@ body.menu-open {
     gap: 0.6rem;
 }
 
+/* Square so the magnifier sits centred. The label lives in aria-label, since
+   a magnifier next to a search field needs no word beside it. */
+
+.btn-icon {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
 .project-search-input {
     flex: 1 1 auto;
     min-width: 0;
