@@ -18,10 +18,9 @@
                 <img class="brand-logo" src="{% static 'img/zido-games.svg' %}" alt="Zido Games">
             </a>
             <div class="nav-links">
-                <a href="{% url 'main:show_main' %}#about"><i class="dia"></i>About</a>
-                <a href="{% url 'main:show_main' %}#projects"><i class="dia"></i>Projects</a>
+                <a href="{% url 'main:show_main' %}"><i class="dia"></i>Home</a>
+                <a href="{% url 'main:show_projects' %}"><i class="dia"></i>Projects</a>
                 <a href="{% url 'main:show_experience' %}"><i class="dia"></i>Experience</a>
-                <a href="{% url 'main:show_main' %}#skills"><i class="dia"></i>Skills</a>
                 <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
             </div>
 
@@ -34,10 +33,9 @@
     </nav>
 
     <div class="nav-menu is-closed" id="nav-menu">
-        <a href="{% url 'main:show_main' %}#about"><i class="dia"></i>About</a>
-        <a href="{% url 'main:show_main' %}#projects"><i class="dia"></i>Projects</a>
+        <a href="{% url 'main:show_main' %}"><i class="dia"></i>Home</a>
+        <a href="{% url 'main:show_projects' %}"><i class="dia"></i>Projects</a>
         <a href="{% url 'main:show_experience' %}"><i class="dia"></i>Experience</a>
-        <a href="{% url 'main:show_main' %}#skills"><i class="dia"></i>Skills</a>
         <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
     </div>
 
