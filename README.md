@@ -4,16 +4,18 @@ Nama : Muhammad Sultan Zidan
 NPM : 2506534876
 Kelas : PBP E
 
-Website portofolio pribadi untuk mata kuliah Pemrograman Berbasis Platform
-(CSGE602022), Fakultas Ilmu Komputer Universitas Indonesia, Semester Gasal
-2026/2027.
+Portofolio pribadi untuk mata kuliah Pemrograman Berbasis Platform (CSGE602022),
+Fakultas Ilmu Komputer Universitas Indonesia, Gasal 2026/2027.
 
-Dua halaman. Halaman profil di `/` berisi hero, About Me, Archive Projects, dan
-Core Tech. Halaman `/experience/` menampilkan daftar pengalaman yang diambil dari
-basis data. Sisi server memakai Django dengan pola MVT: model `Experience`
-menyimpan datanya, view menyiapkan context, template merendernya. Tampilannya
-HTML5 dan CSS3, ditambah sedikit JavaScript untuk taburan bintang, efek parallax
-di hero, menu layar sempit, dan penampil objek 3D.
+Tiga halaman. `/` berisi hero, About Me, dan Core Tech. `/projects/` memuat enam
+proyek, `/experience/` memuat lima pengalaman sebagai carousel. Isi kedua halaman
+daftar itu datang dari basis data lewat model `Project` dan `Experience`, bukan
+ditulis di HTML.
+
+Sisi server memakai Django dengan pola MVT. Tampilannya HTML5 dan CSS3.
+JavaScript dipakai untuk lima hal: taburan bintang di hero, parallax antar
+lapisan langit, navbar yang menyingkir saat menggulir, menu layar sempit, dan
+penampil objek 3D pada foto profil.
 
 Versi daring: <https://muhammad-sultan51-myportofolio.pws.cs.ui.ac.id>
 
@@ -26,36 +28,45 @@ source env/bin/activate         # macOS dan Linux
 
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py loaddata experience
 python manage.py runserver
 ```
 
-Halaman terbuka di <http://localhost:8000>
+Buka <http://localhost:8000>.
 
-Proyek membaca berkas `.env` di root. Berkas itu tidak ikut masuk repositori,
-jadi buat sendiri dengan satu baris berikut:
+`migrate` sekaligus mengisi tabel `Experience` dan `Project` dari
+`main/fixtures/`, jadi tidak perlu `loaddata` manual. Kalau tabelnya dikosongkan,
+kedua halaman daftar menampilkan pesan "Belum ada ...".
+
+Proyek membaca berkas `.env` di root yang tidak ikut masuk repositori. Buat
+sendiri, isinya satu baris:
 
 ```
 PRODUCTION=False
 ```
 
-Selama nilainya `False`, proyek memakai SQLite. Saat diubah menjadi `True`,
-proyek beralih ke PostgreSQL memakai kredensial dari `.env.prod`.
+Nilai `False` memakai SQLite. Diubah ke `True`, proyek beralih ke PostgreSQL
+dengan kredensial dari `.env.prod`.
+
+Jalankan `python manage.py test` untuk menjalankan 12 test di `main/tests.py`.
 
 ## Struktur
 
 | Jalur | Isi |
 | --- | --- |
-| `portofolio/` | konfigurasi Django dan routing tingkat proyek |
-| `main/` | aplikasi utama: model `Experience`, view, routing, dan test |
-| `main/fixtures/experience.json` | isi awal tabel `Experience`, dimuat dengan `loaddata` |
-| `templates/base.html` | kerangka bersama: head, navbar, dan footer |
+| `portofolio/` | settings dan routing tingkat proyek |
+| `main/models.py` | model `Experience` dan `Project` |
+| `main/views.py` | `show_main`, `show_experience`, `show_projects` |
+| `main/urls.py` | rute `/`, `/experience/`, `/projects/` dengan namespace `main` |
+| `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
+| `main/tests.py` | 12 test |
+| `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
-| `templates/experience.html` | daftar pengalaman |
-| `static/css/style.css` | seluruh gaya, satu berkas |
-| `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar dan menu, `viewer.js` penampil 3D |
-| `static/img/` | foto, logo, sampul proyek, ikon teknologi |
-| `static/model/` | berkas `.fbx` untuk objek 3D |
+| `templates/projects.html` | daftar proyek |
+| `templates/experience.html` | carousel pengalaman |
+| `static/css/style.css` | seluruh gaya |
+| `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D |
+| `static/img/` | foto, logo, sampul proyek, gambar pengalaman, ikon teknologi |
+| `static/model/object.fbx` | Makara UI untuk penampil 3D |
 
 ## Alur branch
 
@@ -73,8 +84,9 @@ Pesan commit mengikuti format Conventional Commits.
 | --- | --- |
 | Tutorial 0 | repositori Git, virtual environment, proyek Django pertama |
 | Tutorial 01 | halaman About Me, WhiteNoise, deploy pertama ke PWS |
-| Tutorial 02 | aplikasi `main`, model `Experience`, data profil pindah ke context, halaman `/experience/`, routing dua level, dan enam unit test |
-| Tugas 1 | tiga section baru (Archive Projects, My Experiences, Core Tech), navigasi antar section, menu layar sempit, hero berlapis dengan parallax, dan penampil objek 3D pada foto profil |
+| Tugas 1 | Archive Projects, My Experiences, Core Tech, menu layar sempit, hero berlapis dengan parallax, penampil objek 3D |
+| Tutorial 02 | aplikasi `main`, model `Experience`, data profil pindah ke context, halaman `/experience/`, routing dua level, enam unit test |
+| Tugas 2 | model `Project`, halaman `/projects/`, kartu proyek digerakkan basis data, carousel pada `/experience/`, fixture dimuat saat migrasi, enam unit test tambahan |
 
 ## Pertanyaan reflektif
 
@@ -117,6 +129,12 @@ Pesan commit mengikuti format Conventional Commits.
    ditulis sekali lalu diisi dari basis data. Setelah itu baru masuk akal
    menambahkan penyaring kategori dan pencarian, karena keduanya butuh data
    yang bisa dikueri, bukan teks yang tertanam di markup.
+
+### Tugas 2
+
+1. [TK]
+2. [TK]
+3. [TK]
 
 ## Penggunaan AI
 
