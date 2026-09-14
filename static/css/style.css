@@ -1317,11 +1317,15 @@ body.menu-open {
     cursor: default;
 }
 
+/* The card gradient is translucent by design. Over a blurred page that reads
+   as muddy, so a solid ground goes underneath it here. */
+
 .delete-modal-box {
     position: relative;
     z-index: 1;
     width: min(100%, 440px);
     padding: 1.6rem;
+    background: var(--gradient-card-blue), var(--navy-900);
 }
 
 .delete-modal-box h2 {
@@ -1576,6 +1580,12 @@ body.menu-open {
     .project-toolbar {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    /* flex-basis follows the main axis. Once the toolbar stacks, the 320px
+       that reserved a sensible width becomes 320px of height. */
+    .project-search {
+        flex: 0 0 auto;
     }
 
     .project-toolbar .btn-primary {
