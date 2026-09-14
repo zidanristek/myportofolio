@@ -1,36 +1,50 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Experience - {{ name }}{% endblock %}
 
 {% block content %}
-        <section class="section experience-section" id="experience">
+        <section class="section page-section experience-section" id="experience">
             <header class="section-head shell">
-                <p class="section-kicker">Perjalanan saya sejauh ini</p>
                 <h1 class="section-title">Experience</h1>
             </header>
 
-            <div class="shell experience-grid">
-                {% for experience in experience_list %}
-                    <article class="card experience-card">
-                        <span class="experience-category">
-                            {{ experience.get_category_display }}
-                        </span>
-                        <h2>{{ experience.title }}</h2>
-                        <p class="experience-description">
-                            {{ experience.description }}
-                        </p>
+            <div class="carousel">
+                <button class="carousel-arrow is-prev" type="button"
+                        data-step="-1" aria-label="Previous experience"></button>
 
-                        {% if experience.is_ongoing %}
-                            <p class="experience-status is-ongoing">Sedang berlangsung</p>
-                        {% else %}
-                            <p class="experience-status">Selesai</p>
-                        {% endif %}
-                    </article>
-                {% empty %}
-                    <p class="empty-state">
-                        Belum ada pengalaman yang ditambahkan.
-                    </p>
-                {% endfor %}
+                <div class="experience-grid" id="experience-track" tabindex="0">
+                    {% for experience in experience_list %}
+                        <article class="card experience-card">
+                            {% if experience.thumbnail %}
+                                <img class="experience-cover" src="{% static experience.thumbnail %}"
+                                     alt="" loading="lazy" width="1080" height="1350">
+                            {% endif %}
+                            <div class="experience-body">
+                                <span class="experience-category visually-hidden">
+                                    {{ experience.get_category_display }}
+                                </span>
+                                <h2>{{ experience.title }}</h2>
+                                <p class="experience-description">
+                                    {{ experience.description }}
+                                </p>
+
+                                {% if experience.is_ongoing %}
+                                    <p class="experience-status visually-hidden">Sedang berlangsung</p>
+                                {% else %}
+                                    <p class="experience-status visually-hidden">Selesai</p>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% empty %}
+                        <p class="empty-state">
+                            Belum ada pengalaman yang ditambahkan.
+                        </p>
+                    {% endfor %}
+                </div>
+
+                <button class="carousel-arrow is-next" type="button"
+                        data-step="1" aria-label="Next experience"></button>
             </div>
         </section>
 {% endblock %}

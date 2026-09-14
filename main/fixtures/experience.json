@@ -1,110 +1,67 @@
 [
 {
     "model": "main.experience",
-    "pk": "043b1536-7867-4f16-8c19-c757f7def78d",
+    "pk": "815dc85c-ad35-4595-aab8-5c3058c56833",
     "fields": {
-        "title": "Top 100 dari 2.000 peserta, Code the Ocean",
-        "description": "Kompetisi pemrograman Code the Ocean, masuk 100 besar dari sekitar dua ribu peserta.",
+        "title": "Finalis Indie Game Ignition COMPFEST 18",
+        "description": "Tim 3Zona lolos ke babak final Indie Game Ignition COMPFEST 18, satu dari dua belas tim yang terpilih.",
         "category": "research",
-        "thumbnail": null,
-        "started_at": "2023-05-01T00:00:00Z",
-        "ended_at": "2023-07-31T00:00:00Z"
+        "thumbnail": "img/experience/compfest-igi.jpg",
+        "started_at": "2026-07-01T00:00:00Z",
+        "ended_at": "2026-08-15T00:00:00Z",
+        "position": 2
     }
 },
 {
     "model": "main.experience",
-    "pk": "0fe297e3-d0fd-4cb3-8376-21f27e49df87",
+    "pk": "916b3fab-b3ec-4f0e-bbf5-dea4eece0bd6",
     "fields": {
-        "title": "Coordinator of ICT, OSIS SMA Negeri 3 Purwokerto",
-        "description": "Mengurus kebutuhan teknologi dan publikasi digital OSIS, termasuk dokumentasi dan media acara sekolah.",
-        "category": "volunteer",
-        "thumbnail": null,
-        "started_at": "2022-01-10T00:00:00Z",
-        "ended_at": "2023-01-20T00:00:00Z"
-    }
-},
-{
-    "model": "main.experience",
-    "pk": "409d8bdc-5743-4a07-81b0-f3f7cb99ed45",
-    "fields": {
-        "title": "Medali perunggu, International Product Development Mastery",
-        "description": "Membawa pulang medali perunggu pada kompetisi pengembangan produk tingkat internasional.",
+        "title": "Ketua Tim PKM-K Legends of Nusantara",
+        "description": "Proposal PKM Kewirausahaan yang lolos pendanaan Kementerian Pendidikan Tinggi, mengangkat mitologi Nusantara menjadi game Roblox.",
         "category": "research",
-        "thumbnail": null,
-        "started_at": "2024-08-01T00:00:00Z",
-        "ended_at": "2024-10-31T00:00:00Z"
-    }
-},
-{
-    "model": "main.experience",
-    "pk": "41014b68-fd7f-411f-a3e0-2f7005f3ed32",
-    "fields": {
-        "title": "Juara Hackathon RISTEK Fasilkom UI",
-        "description": "Biotopia, aplikasi pemantauan keanekaragaman hayati, memenangi hackathon dan mendapat pendanaan Rp 20 juta.",
-        "category": "research",
-        "thumbnail": null,
-        "started_at": "2026-02-14T00:00:00Z",
-        "ended_at": "2026-02-16T00:00:00Z"
-    }
-},
-{
-    "model": "main.experience",
-    "pk": "45cc29c5-5241-4062-a6c5-5d3cbd40e072",
-    "fields": {
-        "title": "Penerima Pendanaan dan Insentif PKM",
-        "description": "Proposal Program Kreativitas Mahasiswa lolos pendanaan Kementerian Pendidikan Tinggi beserta insentifnya.",
-        "category": "research",
-        "thumbnail": null,
+        "thumbnail": "img/experience/pkm.jpg",
         "started_at": "2026-03-01T00:00:00Z",
-        "ended_at": null
+        "ended_at": null,
+        "position": 3
     }
 },
 {
     "model": "main.experience",
-    "pk": "7bcba791-4898-4f75-a7e8-614de3cca73f",
+    "pk": "b0fc1cfe-1427-4584-a781-eafb7c47cbb3",
     "fields": {
-        "title": "Project Officer, Clubban UI Road to Banyumas",
-        "description": "Memimpin panitia Clubban UI di Banyumas, mengurus perencanaan, anggaran, dan koordinasi lapangan.",
-        "category": "volunteer",
-        "thumbnail": null,
-        "started_at": "2025-06-01T00:00:00Z",
-        "ended_at": "2025-09-30T00:00:00Z"
-    }
-},
-{
-    "model": "main.experience",
-    "pk": "8bc9f47f-66fc-4c8b-b42c-ec92339a6436",
-    "fields": {
-        "title": "Game Developer, COMPFEST 18",
-        "description": "Membangun game untuk rangkaian acara COMPFEST 18 di bawah RISTEK Fasilkom UI, dari perancangan mekanik sampai aset visualnya.",
-        "category": "volunteer",
-        "thumbnail": null,
-        "started_at": "2026-01-20T00:00:00Z",
-        "ended_at": null
-    }
-},
-{
-    "model": "main.experience",
-    "pk": "ae041944-78f1-4c36-8e66-40c1beecd249",
-    "fields": {
-        "title": "Top 50 dari 627 tim, BudayaGO!",
-        "description": "Kompetisi BudayaGO! Kemendikbud, tim menembus 50 besar nasional dari 627 tim peserta.",
+        "title": "Fund Winner RISTEK Hackathon 2026",
+        "description": "Biotopia, aplikasi pemantauan keanekaragaman hayati, memenangi RISTEK Hackathon 2026 dan mendapat pendanaan Rp 20.000.000.",
         "category": "research",
-        "thumbnail": null,
-        "started_at": "2025-03-01T00:00:00Z",
-        "ended_at": "2025-06-30T00:00:00Z"
+        "thumbnail": "img/experience/ristek-hackathon.jpg",
+        "started_at": "2026-02-14T00:00:00Z",
+        "ended_at": "2026-02-16T00:00:00Z",
+        "position": 1
     }
 },
 {
     "model": "main.experience",
-    "pk": "b7045ad8-6bfe-4876-b17b-e95135ea3f2c",
+    "pk": "b750f8c1-a120-4e9f-9e88-6ee9a484257b",
     "fields": {
-        "title": "Vice Director, PT Wirausaha Daya Optima",
-        "description": "Membantu direksi menyusun rencana produk dan menjaga jalannya operasional harian perusahaan.",
-        "category": "part-time",
-        "thumbnail": null,
-        "started_at": "2026-01-05T00:00:00Z",
-        "ended_at": null
+        "title": "Programmer of Game Development, RISTEK Fasilkom UI",
+        "description": "Salah satu dari empat programmer di divisi Game Development RISTEK Fasilkom UI 2026.",
+        "category": "volunteer",
+        "thumbnail": "img/experience/ristek-gamedev.jpg",
+        "started_at": "2026-01-20T00:00:00Z",
+        "ended_at": null,
+        "position": 4
+    }
+},
+{
+    "model": "main.experience",
+    "pk": "f7365cee-54f1-4d15-86d3-cb40844993f1",
+    "fields": {
+        "title": "Project Officer URBAN 2026",
+        "description": "Memimpin kepanitiaan URBAN 2026, program UI Road To Banyumas milik Clubban UI, dengan tema From Dreams, to Wings.",
+        "category": "volunteer",
+        "thumbnail": "img/experience/banyumas.jpg",
+        "started_at": "2025-06-01T00:00:00Z",
+        "ended_at": "2025-09-30T00:00:00Z",
+        "position": 5
     }
 }
 ]

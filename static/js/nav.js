@@ -78,3 +78,27 @@
         }
     });
 })();
+
+/* The experience carousel scrolls itself on touch and trackpad. These arrows
+   are there for a plain mouse, which has no sideways gesture. */
+
+(function () {
+    "use strict";
+
+    var track = document.getElementById("experience-track");
+    if (!track) {
+        return;
+    }
+
+    var slide = track.querySelector(".experience-card");
+    if (!slide) {
+        return;
+    }
+
+    document.querySelectorAll(".carousel-arrow").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var step = parseInt(button.getAttribute("data-step"), 10);
+            track.scrollBy({ left: step * (slide.offsetWidth + 24), behavior: "smooth" });
+        });
+    });
+})();
