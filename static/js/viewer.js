@@ -1,6 +1,6 @@
-/* Menampilkan objek 3D di dalam bingkai foto saat kursor berada di atasnya.
-   Three.js baru diunduh ketika kursor menyentuh bingkai, jadi pembaca yang
-   hanya lewat tidak menanggung ongkosnya. */
+/* Shows a 3D object inside the photo frame while the pointer rests on it.
+   Three.js is only fetched once the pointer arrives, so a reader who scrolls
+   straight past never pays for it. */
 
 (function () {
     "use strict";
@@ -12,31 +12,31 @@
         return;
     }
 
-    var FBX = mount.getAttribute("data-model");
-    var mulai = false;
+    var MODEL = mount.getAttribute("data-model");
+    var started = false;
 
-    function gagal() {
+    function fail() {
         var tag = frame.querySelector(".frame-tag");
         if (tag) {
             tag.remove();
         }
     }
 
-    function muat() {
-        if (mulai) {
+    function load() {
+        if (started) {
             return;
         }
-        mulai = true;
+        started = true;
 
-        /* Specifier telanjang di bawah ini dipetakan oleh importmap di <head>. */
+        /* The bare specifiers below are resolved by the importmap in <head>. */
         Promise.all([import("three"), import("three/addons/loaders/FBXLoader.js")])
             .then(function (mod) {
-                jalan(mod[0], mod[1].FBXLoader);
+                start(mod[0], mod[1].FBXLoader);
             })
-            .catch(gagal);
+            .catch(fail);
     }
 
-    function jalan(THREE, FBXLoader) {
+    function start(THREE, FBXLoader) {
         var scene = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
         var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -57,10 +57,10 @@
         var pivot = new THREE.Group();
         scene.add(pivot);
 
-        /* Ukuran diambil dari kotak bingkai, bukan dari canvas, karena canvas
-           belum punya ukuran sampai setSize dipanggil pertama kali. */
+        /* Measured from the frame, not the canvas, because the canvas has no
+           size until setSize runs for the first time. */
 
-        function ukur() {
+        function resize() {
             var w = mount.clientWidth || frame.clientWidth;
             var h = mount.clientHeight || frame.clientHeight;
 
@@ -71,49 +71,50 @@
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
             renderer.setSize(w, h);
-            taruh();
+            place();
         }
 
-        /* Jarak kamera dihitung dari bukaan yang paling sempit. Bingkainya
-           tegak, jadi lebar yang biasanya membatasi, bukan tinggi. */
+        /* Distance comes from the narrower opening. The frame stands upright,
+           so width is usually the limit rather than height. */
 
-        function taruh() {
-            var tegak = THREE.MathUtils.degToRad(camera.fov) / 2;
-            var datar = Math.atan(Math.tan(tegak) * camera.aspect);
+        function place() {
+            var vertical = THREE.MathUtils.degToRad(camera.fov) / 2;
+            var horizontal = Math.atan(Math.tan(vertical) * camera.aspect);
 
-            camera.position.set(0, 0, (1 / Math.sin(Math.min(tegak, datar))) * 1.2);
+            camera.position.set(0, 0, (1 / Math.sin(Math.min(vertical, horizontal))) * 1.2);
             camera.lookAt(0, 0, 0);
         }
 
-        new FBXLoader().load(FBX, function (obj) {
+        new FBXLoader().load(MODEL, function (obj) {
             pivot.add(obj);
             pivot.updateMatrixWorld(true);
 
-            /* Model datang dengan skala dan titik pusat sembarang, jadi
-               dinormalkan ke jari-jari 1 lalu digeser ke titik nol. */
-            var bola = new THREE.Box3().setFromObject(obj).getBoundingSphere(new THREE.Sphere());
-            var skala = 1 / (bola.radius || 1);
+            /* The model arrives at an arbitrary scale and centre, so it is
+               normalised to radius 1 and moved onto the origin. Matrices have
+               to be updated first or the bounding sphere comes out wrong. */
+            var sphere = new THREE.Box3().setFromObject(obj).getBoundingSphere(new THREE.Sphere());
+            var scale = 1 / (sphere.radius || 1);
 
-            obj.scale.setScalar(skala);
+            obj.scale.setScalar(scale);
             obj.position.set(
-                -bola.center.x * skala,
-                -bola.center.y * skala,
-                -bola.center.z * skala
+                -sphere.center.x * scale,
+                -sphere.center.y * scale,
+                -sphere.center.z * scale
             );
 
-            ukur();
-            putar();
-        }, null, gagal);
+            resize();
+            spin();
+        }, null, fail);
 
-        window.addEventListener("resize", ukur, { passive: true });
+        window.addEventListener("resize", resize, { passive: true });
 
-        function putar() {
-            window.requestAnimationFrame(putar);
+        function spin() {
+            window.requestAnimationFrame(spin);
             pivot.rotation.y += 0.008;
             renderer.render(scene, camera);
         }
     }
 
-    frame.addEventListener("mouseenter", muat, { once: true });
-    frame.addEventListener("focusin", muat, { once: true });
+    frame.addEventListener("mouseenter", load, { once: true });
+    frame.addEventListener("focusin", load, { once: true });
 })();

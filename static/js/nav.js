@@ -1,5 +1,5 @@
-/* Navbar menyingkir saat pembaca menggulir turun dan kembali saat menggulir
-   naik, supaya isi halaman tidak terpotong di layar pendek. */
+/* The navbar gets out of the way on scroll down and returns on scroll up, so
+   short screens do not lose a strip of content to it. */
 
 (function () {
     "use strict";
@@ -9,36 +9,36 @@
         return;
     }
 
-    var AMBANG = 12;      /* gerakan di bawah ini diabaikan, cegah kedip */
-    var MULAI = 140;      /* di puncak halaman navbar selalu tampak */
+    var THRESHOLD = 12;   /* smaller moves are ignored, which stops the flicker */
+    var START = 140;      /* near the top the navbar always shows */
 
-    var terakhir = window.pageYOffset;
-    var menunggu = false;
+    var lastY = window.pageYOffset;
+    var ticking = false;
 
-    function periksa() {
-        menunggu = false;
+    function check() {
+        ticking = false;
 
         var y = window.pageYOffset;
-        var beda = y - terakhir;
+        var delta = y - lastY;
 
-        if (Math.abs(beda) < AMBANG) {
+        if (Math.abs(delta) < THRESHOLD) {
             return;
         }
 
-        nav.classList.toggle("is-hidden", beda > 0 && y > MULAI);
-        terakhir = y;
+        nav.classList.toggle("is-hidden", delta > 0 && y > START);
+        lastY = y;
     }
 
     window.addEventListener("scroll", function () {
-        if (!menunggu) {
-            menunggu = true;
-            window.requestAnimationFrame(periksa);
+        if (!ticking) {
+            ticking = true;
+            window.requestAnimationFrame(check);
         }
     }, { passive: true });
 })();
 
-/* Menu layar sempit: tombol tiga garis membuka panel, dan selama panel terbuka
-   halaman di belakangnya dikunci supaya tidak ikut tergulir. */
+/* Narrow-screen menu: the burger opens a panel, and while that panel is open
+   the page behind it is locked against scrolling. */
 
 (function () {
     "use strict";
@@ -50,36 +50,31 @@
         return;
     }
 
-    function setel(buka) {
-        burger.setAttribute("aria-expanded", buka ? "true" : "false");
-        burger.setAttribute("aria-label", buka ? "Close menu" : "Open menu");
-        menu.classList.toggle("is-closed", !buka);
-        document.body.classList.toggle("menu-open", buka);
+    function setOpen(open) {
+        burger.setAttribute("aria-expanded", open ? "true" : "false");
+        burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        menu.classList.toggle("is-closed", !open);
+        document.body.classList.toggle("menu-open", open);
     }
 
     burger.addEventListener("click", function () {
-        setel(burger.getAttribute("aria-expanded") !== "true");
+        setOpen(burger.getAttribute("aria-expanded") !== "true");
     });
 
-    /* Tautan di dalam panel menutup panelnya sendiri, kalau tidak halaman
-       tetap terkunci setelah pembaca melompat ke section tujuan. */
-    /* Menekan tautan mana pun, atau area kosong di sekitarnya, menutup panel.
-       Tanpa ini halaman tetap terkunci setelah pembaca melompat ke tujuan. */
-    menu.addEventListener("click", function (e) {
-        if (e.target.closest("a") || e.target === menu) {
-            setel(false);
+    /* A link, the padding around it, or anything outside the panel all close
+       it. Without that the page stays locked after the reader jumps away. */
+    document.addEventListener("click", function (e) {
+        if (burger.contains(e.target)) {
+            return;
+        }
+        if (!menu.contains(e.target) || e.target === menu || e.target.closest("a")) {
+            setOpen(false);
         }
     });
 
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") {
-            setel(false);
-        }
-    });
-
-    document.addEventListener("click", function (e) {
-        if (!menu.contains(e.target) && !burger.contains(e.target)) {
-            setel(false);
+            setOpen(false);
         }
     });
 })();

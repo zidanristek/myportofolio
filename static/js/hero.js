@@ -1,13 +1,13 @@
-/* Dua hal untuk hero: menaburkan bintang, dan menggeser tiap lapisan langit
-   dengan kecepatan berbeda saat halaman digulir. */
+/* Two jobs for the hero: scatter the stars, and drift each sky layer at its
+   own speed while the page scrolls. */
 
 (function () {
     "use strict";
 
-    var HALUS = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    /* Bintang. Menulis 70 titik tetap ke dalam template akan mengubur markup,
-       jadi dibuat sekali saat halaman dimuat. Kedipannya diserahkan ke CSS. */
+    /* Writing 70 fixed dots into the template would bury the markup, so they
+       are generated once on load. CSS owns the twinkle. */
 
     var sky = document.getElementById("stars");
 
@@ -30,41 +30,41 @@
         sky.appendChild(batch);
     }
 
-    /* Parallax. Lapisan yang lebih jauh diberi data-speed lebih kecil, jadi
-       bergerak lebih lambat dari lapisan depan. */
+    /* Parallax. A smaller data-speed means a layer sits further away and so
+       moves slower than the ones in front of it. */
 
     var layers = [].slice.call(document.querySelectorAll("[data-speed]"));
 
-    if (HALUS || layers.length === 0) {
+    if (REDUCED || layers.length === 0) {
         return;
     }
 
     var hero = document.querySelector(".hero");
-    var menunggu = false;
+    var ticking = false;
 
-    function gambar() {
-        menunggu = false;
+    function draw() {
+        ticking = false;
 
         var y = window.pageYOffset;
 
-        /* Berhenti menggeser begitu hero lewat dari layar, supaya tidak ada
-           kerja sia-sia sepanjang sisa halaman. */
+        /* Stop once the hero has left the viewport, otherwise this keeps
+           working for the whole rest of the page for nothing. */
         if (hero && y > hero.offsetHeight) {
             return;
         }
 
         for (var i = 0; i < layers.length; i++) {
-            var jauh = y * parseFloat(layers[i].getAttribute("data-speed"));
-            layers[i].style.transform = "translate3d(0," + jauh.toFixed(1) + "px,0)";
+            var shift = y * parseFloat(layers[i].getAttribute("data-speed"));
+            layers[i].style.transform = "translate3d(0," + shift.toFixed(1) + "px,0)";
         }
     }
 
     window.addEventListener("scroll", function () {
-        if (!menunggu) {
-            menunggu = true;
-            window.requestAnimationFrame(gambar);
+        if (!ticking) {
+            ticking = true;
+            window.requestAnimationFrame(draw);
         }
     }, { passive: true });
 
-    gambar();
+    draw();
 })();
