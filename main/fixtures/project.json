@@ -1,0 +1,80 @@
+[
+{
+    "model": "main.project",
+    "pk": "1942336c-55f3-49f6-9319-ec63b4e0e56d",
+    "fields": {
+        "title": "Nusantara Defense",
+        "description": "A tower defense game that turns regional myths and iconography into playable units. I wrote the ability system and the three modes: Story, Infinite, and Challenge.",
+        "category": "game",
+        "cover": "img/projects/nusantara-defense.jpg",
+        "cover_alt": "Nusantara Defense title art beside three unit cards and a gameplay screen",
+        "tech_stack": "Roblox Studio, Lua, Blender",
+        "position": 1
+    }
+},
+{
+    "model": "main.project",
+    "pk": "3b2f1725-007f-4780-9cd8-72cb60d78329",
+    "fields": {
+        "title": "URBAN",
+        "description": "The site for UI Road To Banyumas, the outreach program I run at Clubban UI. Schedule, materials, and merch orders in one place.",
+        "category": "web",
+        "cover": "img/projects/urban.jpg",
+        "cover_alt": "URBAN landing page next to its merchandise ordering screen",
+        "tech_stack": "Tailwind, Gviz",
+        "position": 2
+    }
+},
+{
+    "model": "main.project",
+    "pk": "43e301b5-fc92-49b0-9dfa-78fe03152d44",
+    "fields": {
+        "title": "ZidoCT",
+        "description": "Translates speech inside VRChat while it is being said. Recognition runs on the device so the delay stays short enough to hold a conversation.",
+        "category": "desktop",
+        "cover": "img/projects/zidoct.jpg",
+        "cover_alt": "ZidoCT translating a spoken sentence from English into Indonesian",
+        "tech_stack": "Faster Whisper, Tauri, React",
+        "position": 3
+    }
+},
+{
+    "model": "main.project",
+    "pk": "5c94a5e6-75d2-48b1-8b29-640127793bc4",
+    "fields": {
+        "title": "Pacilator",
+        "description": "Translates documents, subtitles, and video files. Tuned so the output reads like a person wrote it rather than a dictionary.",
+        "category": "tool",
+        "cover": "img/projects/pacilator.jpg",
+        "cover_alt": "Pacilator drop area for subtitle and document files over its split-face logo",
+        "tech_stack": "Python, PyQt5, Selenium",
+        "position": 5
+    }
+},
+{
+    "model": "main.project",
+    "pk": "731d6746-398f-4833-9c44-c131fefae01b",
+    "fields": {
+        "title": "SCERA",
+        "description": "Scrapes the UI student portal and rebuilds my timetable as something readable.",
+        "category": "tool",
+        "cover": "img/projects/scera.jpg",
+        "cover_alt": "SCERA weekly timetable rebuilt from the UI student portal",
+        "tech_stack": "C#, WinForms",
+        "position": 6
+    }
+},
+{
+    "model": "main.project",
+    "pk": "d3aa6a24-2b01-4220-a349-8023c7accd01",
+    "fields": {
+        "title": "RESIK",
+        "description": "Photograph a piece of household waste, get it identified, book a pickup, collect points.",
+        "category": "mobile",
+        "cover": "img/projects/resik.jpg",
+        "cover_alt": "RESIK home screen held in one hand, with pickup and article screens behind it",
+        "tech_stack": "Flutter, Firebase, Figma",
+        "position": 4
+    }
+}
+]

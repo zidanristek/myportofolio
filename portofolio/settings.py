@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -48,6 +49,10 @@ ALLOWED_HOSTS += DEPLOYMENT_HOSTS
 CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in DEPLOYMENT_HOSTS]
 
 PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
+
+# Tests get their own empty database and build the rows they need themselves,
+# so the migration that seeds the portfolio has to stay out of their way.
+TESTING = 'test' in sys.argv
 
 
 # Application definition
