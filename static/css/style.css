@@ -1115,6 +1115,252 @@ body.menu-open {
 }
 
 /* ==========================================================================
+   Forms, flash messages, and the delete confirmation
+
+   The tutorial ships its own palette for these. Everything below is the same
+   layout mapped onto the tokens this site already uses, so a form does not
+   arrive looking like it came from another project.
+   ========================================================================== */
+
+.btn-danger {
+    color: var(--n-100);
+    background: linear-gradient(156.6deg, #e06a5c 24%, #8f2018 78%);
+    box-shadow: var(--shadow-btn);
+}
+
+.flash-list {
+    margin-bottom: 1.5rem;
+}
+
+.flash {
+    padding: 0.8rem 1.1rem;
+    border-radius: var(--radius-card);
+    border: 1px solid rgba(143, 199, 239, 0.28);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.flash-success {
+    color: var(--green-400);
+    background: rgba(0, 165, 81, 0.12);
+    border-color: rgba(63, 203, 132, 0.45);
+}
+
+.flash-error {
+    color: #ffb3aa;
+    background: rgba(180, 35, 24, 0.16);
+    border-color: rgba(224, 106, 92, 0.5);
+}
+
+/* Toolbar above the list: search on the left, add on the right. */
+
+.project-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.9rem;
+    margin-bottom: 1.6rem;
+}
+
+.project-search {
+    display: flex;
+    flex: 1 1 320px;
+    gap: 0.6rem;
+}
+
+.project-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid rgba(143, 199, 239, 0.28);
+    border-radius: 12px;
+    background: rgba(1, 21, 43, 0.45);
+    color: var(--n-100);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+.project-search-input::placeholder {
+    color: var(--n-400);
+}
+
+.project-search-input:focus-visible {
+    outline: 2px solid var(--green-400);
+    outline-offset: 1px;
+}
+
+.project-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+}
+
+/* Form */
+
+.form-shell {
+    max-width: 640px;
+}
+
+.project-form {
+    padding: 1.75rem;
+}
+
+.form-group {
+    margin-bottom: 1.15rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blue-200);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(143, 199, 239, 0.28);
+    border-radius: 12px;
+    background: rgba(1, 21, 43, 0.45);
+    color: var(--n-100);
+    font: inherit;
+    font-size: 0.92rem;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+/* The dropdown opens as a native menu painted by the operating system, so its
+   options need a colour of their own or they land dark on dark. */
+
+.form-group select option {
+    color: var(--navy-950);
+    background: var(--n-100);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--n-400);
+}
+
+.form-group input:focus-visible,
+.form-group select:focus-visible,
+.form-group textarea:focus-visible {
+    outline: 2px solid var(--green-400);
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+.form-help {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--n-400);
+}
+
+.form-error {
+    margin-top: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #ffb3aa;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.6rem;
+}
+
+/* Delete confirmation, built on the popover attribute so the browser handles
+   the top layer, the backdrop stacking, and dismissal on Escape. */
+
+.delete-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 1rem;
+    border: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+.delete-modal:popover-open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(1, 21, 43, 0.72);
+    backdrop-filter: blur(6px);
+    cursor: default;
+}
+
+.delete-modal-box {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 440px);
+    padding: 1.6rem;
+}
+
+.delete-modal-box h2 {
+    margin-bottom: 0.6rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--n-100);
+}
+
+.delete-modal-form label {
+    display: block;
+    margin: 1.1rem 0 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blue-200);
+}
+
+.delete-modal-form input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid rgba(143, 199, 239, 0.28);
+    border-radius: 12px;
+    background: rgba(1, 21, 43, 0.5);
+    color: var(--n-100);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+.delete-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.3rem;
+}
+
+/* ==========================================================================
    Core tech
 
    Two rows run in opposite directions. The list is duplicated in the HTML
@@ -1323,6 +1569,40 @@ body.menu-open {
     .marquee-run img {
         width: 38px;
         height: 38px;
+    }
+}
+
+@media (max-width: 600px) {
+    .project-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .project-toolbar .btn-primary {
+        justify-content: center;
+    }
+
+    /* Sheet yang naik dari dasar layar lebih mudah dijangkau ibu jari
+       daripada kotak melayang di tengah. */
+    .delete-modal:popover-open {
+        align-items: flex-end;
+    }
+
+    .delete-modal {
+        padding: 0;
+    }
+
+    .delete-modal-box {
+        width: 100%;
+        border-radius: var(--radius-card) var(--radius-card) 0 0;
+    }
+
+    .delete-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .delete-modal-actions .btn {
+        width: 100%;
     }
 }
 
