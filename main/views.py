@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from main.models import Experience
+from main.models import Experience, Project
 
 
 def show_main(request):
@@ -20,8 +20,16 @@ def show_main(request):
 def show_experience(request):
     context = {
         "name": "Muhammad Sultan Zidan",
-        # Without order_by the row order is left to the database. Local SQLite
-        # happens to return insertion order, PostgreSQL on PWS need not.
-        "experience_list": Experience.objects.all().order_by("-started_at"),
+        # Experience.Meta.ordering already fixes the order.
+        "experience_list": Experience.objects.all(),
     }
     return render(request, "experience.html", context)
+
+
+def show_projects(request):
+    context = {
+        "name": "Muhammad Sultan Zidan",
+        # Project.Meta.ordering already fixes the order, so no order_by here.
+        "project_list": Project.objects.all(),
+    }
+    return render(request, "projects.html", context)

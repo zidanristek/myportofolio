@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Projects - {{ name }}{% endblock %}
+
+{% block content %}
+        <section class="section page-section" id="projects">
+            <header class="section-head shell">
+                <h1 class="section-title">Archive Projects</h1>
+            </header>
+
+            <div class="shell project-grid">
+                {% for project in project_list %}
+                    <article class="card project-card">
+                        <img class="project-cover" src="{% static project.cover %}"
+                             alt="{{ project.cover_alt }}" width="880" height="550" loading="lazy">
+                        <div class="project-body">
+                            <p class="card-kind">{{ project.get_category_display }}</p>
+                            <h2 class="card-heading">{{ project.title }}</h2>
+                            <p class="card-text">{{ project.description }}</p>
+                            <ul class="pill-list">
+                                {% for tech in project.tech_list %}
+                                    <li class="pill">{{ tech }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="empty-state">Belum ada proyek yang ditambahkan.</p>
+                {% endfor %}
+            </div>
+        </section>
+{% endblock %}
