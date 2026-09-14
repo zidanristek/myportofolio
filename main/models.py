@@ -48,8 +48,13 @@ class Project(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='web')
-    cover = models.CharField(max_length=255)
-    cover_alt = models.CharField(max_length=255)
+    # Kept for the projects that ship with the repository, where the artwork
+    # is a static file. Rows added through the form have no static file, so
+    # they carry a URL instead and both are optional.
+    cover = models.CharField(max_length=255, blank=True)
+    cover_alt = models.CharField(max_length=255, blank=True)
+    project_image_url = models.URLField(max_length=500, blank=True)
+    project_url = models.URLField(blank=True)
     tech_stack = models.CharField(max_length=255)
     position = models.PositiveSmallIntegerField(default=0)
 
