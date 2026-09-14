@@ -172,12 +172,6 @@ Pesan commit mengikuti format Conventional Commits.
    error sampai `migrate` dijalankan dan kolomnya benar-benar terbentuk di
    tabel.
 
-### Tutorial 3
-
-1. [TK]
-2. [TK]
-3. [TK]
-
 ## Penggunaan AI
 
 Saya memakai AI dalam pengerjaan tugas ini. Berikut bagian mana saja dan
