@@ -55,13 +55,16 @@
                                     <p class="experience-status visually-hidden">Selesai</p>
                                 {% endif %}
 
-                                {% if user.is_superuser %}
-                                    <div class="project-actions">
+                                <div class="project-actions">
+                                    {% include "components/experience_star.html" with experience=experience %}
+                                    {% if perms.main.change_experience %}
                                         <a href="{% url 'main:update_experience' experience.id %}"
                                            class="btn btn-secondary btn-sm">Ubah</a>
+                                    {% endif %}
+                                    {% if user.is_superuser %}
                                         {% include "components/experience_delete_modal.html" with experience=experience %}
-                                    </div>
-                                {% endif %}
+                                    {% endif %}
+                                </div>
                             </div>
                         </article>
                     {% empty %}
