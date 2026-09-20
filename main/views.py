@@ -20,8 +20,19 @@ OWNER = "Muhammad Sultan Zidan"
 
 
 def _owner_only(request):
-    """Registered is not the same as owner. Only the owner writes portfolio data."""
+    """Adding and removing portfolio entries belongs to the owner alone."""
     if not request.user.is_superuser:
+        raise PermissionDenied
+
+
+def _may_change(request, model_name):
+    """Editors correct what is already there. Owners inherit the right.
+
+    The check reads Django's own permission table rather than a group name, so
+    moving an account in or out of the Editor group through the admin is all it
+    takes, and the same expression works in a template as perms.main.change_x.
+    """
+    if not request.user.has_perm("main.change_%s" % model_name):
         raise PermissionDenied
 
 
@@ -89,18 +100,28 @@ def logout_user(request):
     return response
 
 
+def _toggle(request, instance):
+    """One star per account, so the same click adds it and takes it away."""
+    if request.method != "POST":
+        return
+
+    if request.user in instance.starred_by.all():
+        instance.starred_by.remove(request.user)
+    else:
+        instance.starred_by.add(request.user)
+
+
 @login_required(login_url="/login/")
 def toggle_star(request, project_id):
-    """Any signed-in account may star. Only writing portfolio data needs the owner."""
-    project = get_object_or_404(Project, pk=project_id)
-
-    if request.method == "POST":
-        if request.user in project.starred_by.all():
-            project.starred_by.remove(request.user)
-        else:
-            project.starred_by.add(request.user)
-
+    """Any signed-in account may star. Changing the entry itself needs more."""
+    _toggle(request, get_object_or_404(Project, pk=project_id))
     return redirect("main:show_projects")
+
+
+@login_required(login_url="/login/")
+def toggle_star_experience(request, experience_id):
+    _toggle(request, get_object_or_404(Experience, pk=experience_id))
+    return redirect("main:show_experience")
 
 
 def _matching_experiences(request):
@@ -115,12 +136,17 @@ def _matching_experiences(request):
 
 
 def get_experiences_json(request):
-    payload = serializers.serialize("json", _matching_experiences(request))
+    # starred_by would otherwise leak database ids into a public endpoint.
+    payload = serializers.serialize(
+        "json", _matching_experiences(request), use_natural_foreign_keys=True
+    )
     return HttpResponse(payload, content_type="application/json")
 
 
 def get_experiences_xml(request):
-    payload = serializers.serialize("xml", _matching_experiences(request))
+    payload = serializers.serialize(
+        "xml", _matching_experiences(request), use_natural_foreign_keys=True
+    )
     return HttpResponse(payload, content_type="application/xml")
 
 
@@ -177,7 +203,7 @@ def create_experience(request):
 
 @login_required(login_url="/login/")
 def update_experience(request, experience_id):
-    _owner_only(request)
+    _may_change(request, "experience")
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
 
@@ -282,7 +308,7 @@ def create_project(request):
 
 @login_required(login_url="/login/")
 def update_project(request, project_id):
-    _owner_only(request)
+    _may_change(request, "project")
     project = get_object_or_404(Project, pk=project_id)
     form = ProjectForm(request.POST or None, instance=project)
 
