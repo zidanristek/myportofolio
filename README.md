@@ -338,9 +338,6 @@ template hanya mengatur apa yang terlihat, bukan apa yang boleh dijalankan.
 
 ### Tugas 4
 
-Halaman tugas belum memuat pertanyaannya. Bagian ini diisi setelah pertanyaan
-reflektif minggu ini dirilis.
-
 1. [TK]
 2. [TK]
 
@@ -518,3 +515,7 @@ terus sectionnya ga ketengah
 Hasilnya saya tempel balik ke section yang saya tunjuk, lalu saya buka
 halamannya sendiri. Beberapa kali jawabannya masih meleset dan saya ulang
 dengan instruksi yang lebih sempit.
+
+### Tugas 4
+
+[TK]
