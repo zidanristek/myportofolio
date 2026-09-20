@@ -1,6 +1,6 @@
 import json
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -632,3 +632,181 @@ class StarTest(TestCase):
         self.client.force_login(User.objects.create_superuser("pemilik", password="rahasia-uji"))
         owner = self.client.get(reverse("main:show_projects"))
         self.assertContains(owner, edit)
+
+
+class EditorRoleTest(TestCase):
+    """The four roles, checked on the server rather than in the markup.
+
+    An editor corrects entries that already exist. Adding and removing them
+    stays with the owner, so the two rights are tested apart from each other.
+    """
+
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Fund Winner RISTEK Hackathon 2026",
+            description="Biotopia memenangi hackathon.",
+            category="research",
+            position=1,
+        )
+        self.project = Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.payload = {
+            "title": "Judul Sudah Diubah",
+            "description": self.experience.description,
+            "category": "internship",
+            "thumbnail": "",
+            "position": 1,
+        }
+
+        self.visitor_paths = {
+            "create": reverse("main:create_experience"),
+            "edit": reverse("main:update_experience", args=[self.experience.id]),
+            "delete": reverse("main:delete_experience", args=[self.experience.id]),
+        }
+
+        self.regular = User.objects.create_user("biasa", password="rahasia-uji")
+        self.editor = User.objects.create_user("editor", password="rahasia-uji")
+        self.editor.groups.add(Group.objects.get(name="Editor"))
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+
+    def test_the_editor_group_carries_only_the_change_permissions(self):
+        codenames = set(
+            Group.objects.get(name="Editor").permissions.values_list("codename", flat=True)
+        )
+
+        self.assertEqual(codenames, {"change_experience", "change_project"})
+
+    def test_a_visitor_is_sent_to_the_login_page(self):
+        for name, path in self.visitor_paths.items():
+            with self.subTest(action=name):
+                self.assertRedirects(self.client.get(path), "/login/?next=" + path)
+
+    def test_a_regular_account_is_refused_everything(self):
+        self.client.force_login(self.regular)
+
+        for name, path in self.visitor_paths.items():
+            with self.subTest(action=name):
+                self.assertEqual(self.client.get(path).status_code, 403)
+
+    def test_an_editor_may_change_but_not_create_or_delete(self):
+        self.client.force_login(self.editor)
+
+        self.assertEqual(self.client.get(self.visitor_paths["edit"]).status_code, 200)
+        self.assertEqual(self.client.get(self.visitor_paths["create"]).status_code, 403)
+        self.assertEqual(self.client.post(self.visitor_paths["delete"]).status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_an_editor_change_actually_saves(self):
+        self.client.force_login(self.editor)
+
+        response = self.client.post(self.visitor_paths["edit"], self.payload)
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, "Judul Sudah Diubah")
+
+    def test_the_owner_may_do_everything(self):
+        self.client.force_login(self.owner)
+
+        self.assertEqual(self.client.get(self.visitor_paths["create"]).status_code, 200)
+        self.assertEqual(self.client.get(self.visitor_paths["edit"]).status_code, 200)
+        self.assertRedirects(
+            self.client.post(self.visitor_paths["delete"]),
+            reverse("main:show_experience"),
+        )
+
+    def test_the_same_rules_cover_projects(self):
+        edit = reverse("main:update_project", args=[self.project.id])
+        delete = reverse("main:delete_project", args=[self.project.id])
+
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(edit).status_code, 200)
+        self.assertEqual(self.client.post(delete).status_code, 403)
+
+        self.client.force_login(self.regular)
+        self.assertEqual(self.client.get(edit).status_code, 403)
+
+    def test_the_page_offers_each_role_only_what_it_may_use(self):
+        edit = reverse("main:update_experience", args=[self.experience.id])
+        delete = reverse("main:delete_experience", args=[self.experience.id])
+        add = reverse("main:create_experience")
+
+        self.client.force_login(self.regular)
+        regular = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(regular, edit)
+        self.assertNotContains(regular, add)
+
+        self.client.force_login(self.editor)
+        editor = self.client.get(reverse("main:show_experience"))
+        self.assertContains(editor, edit)
+        self.assertNotContains(editor, delete)
+        self.assertNotContains(editor, add)
+
+        self.client.force_login(self.owner)
+        owner = self.client.get(reverse("main:show_experience"))
+        self.assertContains(owner, edit)
+        self.assertContains(owner, delete)
+        self.assertContains(owner, add)
+
+
+class ExperienceStarTest(TestCase):
+    """Starring an experience, open to any signed-in account."""
+
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Project Officer URBAN 2026",
+            description="Memimpin kepanitiaan URBAN 2026.",
+            category="volunteer",
+            position=1,
+        )
+        self.warga = User.objects.create_user("warga", password="rahasia-uji")
+        self.url = reverse("main:toggle_star_experience", args=[self.experience.id])
+
+    def test_a_visitor_is_sent_to_the_login_page(self):
+        self.assertRedirects(self.client.post(self.url), "/login/?next=" + self.url)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_a_registered_account_can_star(self):
+        self.client.force_login(self.warga)
+
+        self.assertRedirects(
+            self.client.post(self.url), reverse("main:show_experience")
+        )
+        self.assertIn(self.warga, self.experience.starred_by.all())
+
+    def test_one_star_per_account(self):
+        self.client.force_login(self.warga)
+
+        self.client.post(self.url)
+        self.client.post(self.url)
+        self.client.post(self.url)
+
+        self.assertEqual(self.experience.starred_by.count(), 1)
+
+    def test_get_does_not_change_anything(self):
+        self.client.force_login(self.warga)
+
+        self.client.get(self.url)
+
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_the_count_and_the_state_reach_the_page(self):
+        self.client.force_login(self.warga)
+        self.client.post(self.url)
+
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, "Unstar")
+        self.assertContains(response, "star-count")
+
+    def test_the_api_names_the_accounts_rather_than_their_ids(self):
+        self.experience.starred_by.add(self.warga)
+
+        body = json.loads(self.client.get(reverse("main:get_experiences_json")).content)
+
+        self.assertEqual(body[0]["fields"]["starred_by"], [["warga"]])
