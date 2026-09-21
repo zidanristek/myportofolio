@@ -88,6 +88,54 @@ Jalankan `python manage.py test` untuk menjalankan 40 test di `main/tests.py`.
 | `static/img/` | foto, logo, sampul proyek, gambar pengalaman, ikon teknologi |
 | `static/model/object.fbx` | Makara UI untuk penampil 3D |
 
+## Arsitektur
+
+Satu permintaan halaman melewati dua berkas routing sebelum sampai ke view.
+Halaman daftar tidak membaca model secara langsung, melainkan memanggil endpoint
+JSON miliknya sendiri lalu membongkarnya kembali, sehingga bentuk yang dipakai
+halaman sama persis dengan yang dipakai client lain.
+
+```mermaid
+flowchart TD
+    browser["Browser"]
+    client["Client lain, misalnya Postman"]
+
+    subgraph routing["Routing"]
+        proj["portofolio/urls.py"]
+        app["main/urls.py"]
+    end
+
+    subgraph views["main/views.py"]
+        show["show_projects"]
+        create["create_project"]
+        api["get_projects_json"]
+    end
+
+    db[("tabel main_project")]
+    page["projects.html extends base.html"]
+    invalid["projects_form.html + pesan error"]
+
+    browser -->|"GET /projects/"| proj
+    browser -->|"POST /projects/add/"| proj
+    proj -->|"include main.urls"| app
+    app --> show
+    app --> create
+
+    create -->|"kode akses salah"| invalid
+    create -->|"form valid, simpan"| db
+    create -->|"redirect"| show
+
+    show -->|"panggil endpoint sendiri"| api
+    api -->|"Project.objects.all"| db
+    db -->|"QuerySet"| api
+    api -->|"serialize json"| show
+    show -->|"deserialize lalu render"| page
+
+    client -->|"GET /api/projects/"| api
+    page --> browser
+    invalid --> browser
+```
+
 ## Alur branch
 
 | Branch | Peran |
@@ -97,6 +145,35 @@ Jalankan `python manage.py test` untuk menjalankan 40 test di `main/tests.py`.
 | `feat/*`, `fix/*`, `docs/*` | berumur pendek, masuk ke `dev` lewat pull request |
 
 Pesan commit mengikuti format Conventional Commits.
+
+```mermaid
+gitGraph
+    commit id: "tutorial 0"
+    branch dev
+    checkout dev
+    commit id: "tutorial 01"
+    commit id: "tugas 1"
+    branch feat/tutorial-2-mvt
+    checkout feat/tutorial-2-mvt
+    commit id: "model"
+    commit id: "view dan routing"
+    commit id: "unit test"
+    checkout dev
+    merge feat/tutorial-2-mvt
+    checkout main
+    merge dev tag: "v0.4.0"
+    checkout dev
+    branch feat/tugas-3-experience-crud
+    checkout feat/tugas-3-experience-crud
+    commit id: "model form"
+    commit id: "create update delete"
+    commit id: "unit test"
+    checkout dev
+    merge feat/tugas-3-experience-crud
+    checkout main
+    merge dev tag: "v0.7.0"
+```
+
 
 ## Progres mingguan
 
