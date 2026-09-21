@@ -378,3 +378,87 @@ pun diubah. Hal kecil juga terjadi waktu saya menambahkan tautan Home ke
 navbar. Yang masuk malah dua, dan baru ketahuan setelah saya lihat halamannya.
 Kesimpulan saya sama seperti Tugas 1. Kodenya cepat jadi, tapi yang menentukan
 benar atau tidak tetap saya, setelah melihat hasilnya di layar.
+
+### Tugas 3
+
+AI yang saya pakai minggu ini cuma Claude, dan pemakaiannya terbatas pada dua
+hal: membenahi bug dan memperbaiki layout yang rusak. Contoh paling jelas waktu
+saya ingin kartu di halaman Experience bisa looping.
+
+**Cara saya memakainya.** Saya salin section yang mau diubah ke Claude, lalu
+saya tanya misalnya kartu ini kalau mau diubah begini caranya bagaimana,
+hasilnya saya tempel balik ke section-nya. Saya tetap minta bantuan, tapi saya
+tahu itu section yang mana dan fungsinya apa, jadi bukan copy paste sembarangan.
+
+**Bagian yang dikerjakan Claude.** Perbaikan visualnya, bukan penentuan
+strukturnya.
+
+**Bagian yang bukan dari Claude.** Penentuan section dan div, termasuk mengukur
+ukurannya, murni dari saya. Saya lebih paham membangun website seperti ini, dan
+kalau strukturnya Claude yang menyusun, ujung-ujungnya rusak dan tetap harus
+saya review ulang.
+
+**Keterbatasannya.** Waktu saya menempelkan section untuk diperbaiki, Claude
+ikut mengubah tampilan yang tidak saya minta dan menambahkan teks yang tidak
+pernah saya sebut. Saya undo, lalu saya perjelas instruksinya supaya yang
+disentuh hanya bagian yang saya tunjuk.
+
+Tiga tebakan lain juga meleset minggu ini, dan ketiganya baru ketahuan setelah
+dijalankan. Form pengalaman ditulis dengan asumsi field `thumbnail` yang
+bertipe `URLField` menerima jalur `img/experience/banyumas.jpg`, padahal
+ditolak, dan percobaan perbaikan pertama mengosongkan validator di sisi form
+yang tetap gagal karena validasinya berjalan di lapisan model. Carousel looping
+butuh tiga percobaan, dua yang pertama masih menyisakan ruang kosong waktu
+halaman di-zoom out karena lebar layar bisa melebihi satu putaran daftar. Dan
+klon carousel awalnya dibuat tanpa tombol, lalu setelah tombolnya diminta ikut
+ternyata dialog hapus di klon tidak pernah terbuka sampai id-nya diberi akhiran
+unik, karena `popovertarget` berhenti di elemen pertama yang namanya cocok.
+
+Kesimpulannya sama seperti dua minggu sebelumnya. Kodenya cepat jadi, tapi yang
+memastikan benar tetap saya, setelah membuka halamannya sendiri.
+
+**Pola prompting.** Ditulis ulang dari percakapan, bukan transkrip mentah.
+
+````
+<div class="experience-grid" id="experience-track" tabindex="0">
+    {% for experience in experience_list %}
+        <article class="card experience-card">
+            ...
+        </article>
+    {% endfor %}
+</div>
+
+ini bisa dibikin looping ga? jadi tetap mulai dari kartu pertama
+tapi di kirinya udah kelihatan kartu yang paling akhir
+````
+
+````
+klonnya kok kosong ya, isinya ga ikut kerender.
+tombol Ubah sama Hapusnya juga harusnya ada dong
+````
+
+````
+masih sama aja. maunya tiap geser satu langsung nyambung,
+terus pas di-zoom out kartunya tetep penuh satu layar
+````
+
+````
+thumbnail = models.URLField(blank=True, null=True)
+
+kenapa ga bisa kesimpen ya? errornya "Enter a valid URL."
+padahal isinya img/experience/banyumas.jpg
+````
+
+````
+.site-footer {
+    padding: 3rem 0 7rem;
+    background: var(--gradient-footer);
+}
+
+footernya rusak kalau di-zoom out, ga nempel bawah
+terus sectionnya ga ketengah
+````
+
+Hasilnya saya tempel balik ke section yang saya tunjuk, lalu saya buka
+halamannya sendiri. Beberapa kali jawabannya masih meleset dan saya ulang
+dengan instruksi yang lebih sempit.
