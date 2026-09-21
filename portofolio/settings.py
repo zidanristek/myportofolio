@@ -54,6 +54,11 @@ PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 # so the migration that seeds the portfolio has to stay out of their way.
 TESTING = 'test' in sys.argv
 
+# PBKDF2 is deliberately slow, which is right in production and painful in a
+# suite that creates an account per test. The weak hasher never leaves tests.
+if TESTING:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 
 # Application definition
 
@@ -88,6 +93,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
