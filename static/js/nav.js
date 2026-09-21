@@ -144,24 +144,43 @@
         return copy;
     }
 
-    /* A full copy on each side rather than a single card, so the run reaches
-       past both edges of the viewport at any width and the reader never sees
-       the track run out. */
-
-    var before = document.createDocumentFragment();
-    var after = document.createDocumentFragment();
-
-    cards.forEach(function (card) {
-        before.appendChild(twin(card));
-        after.appendChild(twin(card));
-    });
-
-    track.insertBefore(before, cards[0]);
-    track.appendChild(after);
-
     function step() {
         var gap = parseFloat(getComputedStyle(track).columnGap) || 0;
         return cards[0].offsetWidth + gap;
+    }
+
+    function run() {
+        return cards.length * step();
+    }
+
+    /* How many copies each side has to reach past the edge of the viewport.
+       One is enough at laptop width, but a zoomed-out page is wider than the
+       whole run and would show the track ending. */
+
+    function needed() {
+        return Math.max(1, Math.ceil(track.clientWidth / run()));
+    }
+
+    var built = 0;
+
+    function build(count) {
+        while (built < count) {
+            var before = document.createDocumentFragment();
+            var after = document.createDocumentFragment();
+
+            cards.forEach(function (card) {
+                before.appendChild(twin(card));
+                after.appendChild(twin(card));
+            });
+
+            track.insertBefore(before, track.firstChild);
+            track.appendChild(after);
+            built += 1;
+        }
+    }
+
+    function centre() {
+        return built * run();
     }
 
     function jump(to) {
@@ -171,27 +190,21 @@
         track.style.scrollBehavior = behaviour;
     }
 
-    function run() {
-        return cards.length * step();
-    }
-
-    /* Drifting a whole copy away from the middle puts the reader back on the
-       matching card in the middle copy. The distance is exactly one copy, so
-       nothing on screen moves. */
+    /* The list repeats every run, so stepping back by one run lands on the same
+       card in the copy nearer the middle. Nothing on screen moves. */
 
     function wrap() {
         var span = run();
+        var drift = track.scrollLeft - centre();
 
-        if (track.scrollLeft < span / 2) {
-            jump(track.scrollLeft + span);
-        } else if (track.scrollLeft > span * 1.5) {
-            jump(track.scrollLeft - span);
+        if (Math.abs(drift) > span / 2) {
+            jump(track.scrollLeft - Math.round(drift / span) * span);
         }
     }
 
-    /* Open on the first card of the middle copy. */
+    build(needed());
     requestAnimationFrame(function () {
-        jump(run());
+        jump(centre());
     });
 
     if ("onscrollend" in window) {
@@ -205,6 +218,7 @@
     }
 
     window.addEventListener("resize", function () {
-        jump(run());
+        build(needed());
+        jump(centre());
     }, { passive: true });
 })();
