@@ -1,13 +1,10 @@
-import os
-
-from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import UserCreationForm
 from django.forms import (
     BooleanField,
     CharField,
     CheckboxInput,
     ModelForm,
     NumberInput,
-    PasswordInput,
     Select,
     Textarea,
     TextInput,
@@ -17,20 +14,24 @@ from django.forms import (
 from main.models import Experience, Project
 
 
-class ProjectForm(ModelForm):
-    """Adds a project from the browser.
+class SignUpForm(UserCreationForm):
+    """Keeps the two password boxes next to each other.
 
-    The site has no accounts yet, so anyone who finds the page could add or
-    remove entries. A shared secret kept in the environment is not real
-    authentication, but it stops the deployed portfolio from being a public
-    notice board until sessions are covered.
+    UserCreationForm hangs the password rules off the first box, which pushes
+    the confirmation a whole list away from the field it confirms. The rules
+    read just as well under the second box.
     """
 
-    password = CharField(
-        label="Kode Akses",
-        widget=PasswordInput(attrs={"placeholder": "Kode akses pemilik"}),
-        help_text="Hanya pemilik portofolio yang bisa menambah proyek.",
-    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        rules = self.fields["password1"].help_text
+        self.fields["password1"].help_text = ""
+        self.fields["password2"].help_text = rules
+
+
+class ProjectForm(ModelForm):
+    """Adds or edits one project. Only the portfolio owner reaches this form."""
+
 
     class Meta:
         model = Project
@@ -82,18 +83,6 @@ class ProjectForm(ModelForm):
             ),
         }
 
-    def clean_password(self):
-        given = self.cleaned_data["password"]
-        expected = os.getenv("EDIT_PASSWORD", "")
-
-        if not expected:
-            raise ValidationError(
-                "EDIT_PASSWORD belum diatur di environment, jadi form dimatikan."
-            )
-        if given != expected:
-            raise ValidationError("Kode akses salah.")
-
-        return given
 
 
 class ExperienceForm(ModelForm):
@@ -124,11 +113,6 @@ class ExperienceForm(ModelForm):
         help_text="Biarkan kosong kalau pengalaman ini masih berjalan.",
     )
 
-    password = CharField(
-        label="Kode Akses",
-        widget=PasswordInput(attrs={"placeholder": "Kode akses pemilik"}),
-        help_text="Hanya pemilik portofolio yang bisa mengubah daftar ini.",
-    )
 
     class Meta:
         model = Experience
@@ -175,15 +159,3 @@ class ExperienceForm(ModelForm):
         if self.instance.pk:
             self.fields["is_finished"].initial = not self.instance.is_ongoing
 
-    def clean_password(self):
-        given = self.cleaned_data["password"]
-        expected = os.getenv("EDIT_PASSWORD", "")
-
-        if not expected:
-            raise ValidationError(
-                "EDIT_PASSWORD belum diatur di environment, jadi form dimatikan."
-            )
-        if given != expected:
-            raise ValidationError("Kode akses salah.")
-
-        return given
