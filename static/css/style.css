@@ -1408,6 +1408,70 @@ body.menu-open {
 }
 
 /* ==========================================================================
+   Akun dan star
+   ========================================================================== */
+
+.nav-user {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--green-400);
+}
+
+.star-form {
+    display: inline;
+}
+
+.btn-star {
+    color: var(--n-100);
+    background: rgba(1, 21, 43, 0.55);
+    border-color: rgba(143, 199, 239, 0.3);
+}
+
+.btn-star.is-starred {
+    background: var(--gradient-btn-2);
+    border-color: rgba(63, 203, 132, 0.6);
+}
+
+.star-count {
+    padding: 0.05rem 0.45rem;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 0.78rem;
+}
+
+.last-login {
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--n-400);
+}
+
+.auth-switch {
+    margin-top: 1.2rem;
+}
+
+.form-help a {
+    color: var(--green-400);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.form-help a:hover {
+    text-decoration: underline;
+}
+
+/* UserCreationForm delivers its password rules as a list, so it needs to sit
+   inside the hint rather than break out of it. */
+
+.form-help ul {
+    margin: 0.2rem 0 0 1.1rem;
+    padding: 0;
+}
+
+.form-help li {
+    margin-top: 0.15rem;
+}
+
+/* ==========================================================================
    Core tech
 
    Two rows run in opposite directions. The list is duplicated in the HTML

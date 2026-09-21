@@ -1,7 +1,6 @@
 import json
-import os
-from unittest.mock import patch
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -64,6 +63,8 @@ class MainTest(TestCase):
 
 class ProjectTest(TestCase):
     def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        self.client.force_login(self.owner)
         self.project = Project.objects.create(
             title="Nusantara Defense",
             description="Tower defense yang mengangkat mitologi Nusantara.",
@@ -123,13 +124,13 @@ class ProjectTest(TestCase):
 class ProjectWriteTest(TestCase):
     """Adding, deleting, and the two data-delivery endpoints.
 
-    EDIT_PASSWORD is patched per test rather than read from .env, so the suite
-    passes on a machine that has never created one.
+    Every test signs in as the owner first, because writing portfolio data now
+    needs both an account and superuser rights.
     """
 
-    CODE = "kode-uji"
-
     def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        self.client.force_login(self.owner)
         self.project = Project.objects.create(
             title="Nusantara Defense",
             description="Tower defense yang mengangkat mitologi Nusantara.",
@@ -153,37 +154,40 @@ class ProjectWriteTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects_form.html")
-        self.assertContains(response, "Kode Akses")
 
     def test_create_project_with_the_right_code(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:create_project"),
-                {**self.payload, "password": self.CODE},
-            )
+        response = self.client.post(
+            reverse("main:create_project"),
+            self.payload,
+        )
 
         self.assertRedirects(response, reverse("main:show_projects"))
         self.assertTrue(Project.objects.filter(title="Pacilator").exists())
 
     def test_new_project_goes_to_the_end(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.post(
-                reverse("main:create_project"),
-                {**self.payload, "password": self.CODE},
-            )
+        self.client.post(
+            reverse("main:create_project"),
+            self.payload,
+        )
 
         self.assertEqual(Project.objects.get(title="Pacilator").position, 2)
 
-    def test_create_project_with_the_wrong_code(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:create_project"),
-                {**self.payload, "password": "salah"},
-            )
+    def test_a_registered_account_cannot_create(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Kode akses salah.")
+        response = self.client.post(reverse("main:create_project"), self.payload)
+
+        self.assertEqual(response.status_code, 403)
         self.assertFalse(Project.objects.filter(title="Pacilator").exists())
+
+    def test_a_visitor_is_sent_to_the_login_page(self):
+        self.client.logout()
+
+        response = self.client.get(reverse("main:create_project"))
+
+        self.assertRedirects(
+            response, "/login/?next=" + reverse("main:create_project")
+        )
 
     def test_projects_json_endpoint(self):
         response = self.client.get(reverse("main:get_projects_json"))
@@ -229,27 +233,26 @@ class ProjectWriteTest(TestCase):
         )
 
     def test_delete_project_with_the_right_code(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:delete_project", args=[self.project.id]),
-                {"password": self.CODE},
-            )
+        response = self.client.post(
+            reverse("main:delete_project", args=[self.project.id]),
+            {},
+        )
 
         self.assertRedirects(response, reverse("main:show_projects"))
         self.assertFalse(Project.objects.filter(pk=self.project.pk).exists())
 
-    def test_delete_project_with_the_wrong_code(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.post(
-                reverse("main:delete_project", args=[self.project.id]),
-                {"password": "salah"},
-            )
+    def test_a_registered_account_cannot_delete(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
 
+        response = self.client.post(
+            reverse("main:delete_project", args=[self.project.id])
+        )
+
+        self.assertEqual(response.status_code, 403)
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
 
     def test_delete_ignores_get(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.get(reverse("main:delete_project", args=[self.project.id]))
+        self.client.get(reverse("main:delete_project", args=[self.project.id]))
 
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
 
@@ -257,9 +260,9 @@ class ProjectWriteTest(TestCase):
 class ExperienceWriteTest(TestCase):
     """Create, update, delete, and the two experience data endpoints."""
 
-    CODE = "kode-uji"
-
     def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        self.client.force_login(self.owner)
         self.experience = Experience.objects.create(
             title="Fund Winner RISTEK Hackathon 2026",
             description="Biotopia memenangi hackathon dan mendapat pendanaan.",
@@ -283,23 +286,20 @@ class ExperienceWriteTest(TestCase):
         self.assertContains(response, "Add Experience")
 
     def test_create_experience(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:create_experience"),
-                {**self.payload, "password": self.CODE},
-            )
+        response = self.client.post(
+            reverse("main:create_experience"),
+            self.payload,
+        )
 
         self.assertRedirects(response, reverse("main:show_experience"))
         self.assertTrue(Experience.objects.filter(title=self.payload["title"]).exists())
 
-    def test_create_experience_with_the_wrong_code(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:create_experience"),
-                {**self.payload, "password": "salah"},
-            )
+    def test_a_registered_account_cannot_create(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
 
-        self.assertContains(response, "Kode akses salah.")
+        response = self.client.post(reverse("main:create_experience"), self.payload)
+
+        self.assertEqual(response.status_code, 403)
         self.assertFalse(Experience.objects.filter(title=self.payload["title"]).exists())
 
     def test_update_page_is_prefilled(self):
@@ -313,18 +313,16 @@ class ExperienceWriteTest(TestCase):
         self.assertContains(response, "Edit Experience")
 
     def test_update_experience(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:update_experience", args=[self.experience.id]),
-                {
-                    "title": "Judul Sudah Diubah",
-                    "description": self.experience.description,
-                    "category": "internship",
-                    "thumbnail": self.experience.thumbnail,
-                    "position": 3,
-                    "password": self.CODE,
-                },
-            )
+        response = self.client.post(
+            reverse("main:update_experience", args=[self.experience.id]),
+            {
+                "title": "Judul Sudah Diubah",
+                "description": self.experience.description,
+                "category": "internship",
+                "thumbnail": self.experience.thumbnail,
+                "position": 3,
+            },
+        )
 
         self.assertRedirects(response, reverse("main:show_experience"))
         self.experience.refresh_from_db()
@@ -333,29 +331,27 @@ class ExperienceWriteTest(TestCase):
         self.assertEqual(self.experience.position, 3)
 
     def test_update_does_not_create_a_second_row(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.post(
-                reverse("main:update_experience", args=[self.experience.id]),
-                {**self.payload, "password": self.CODE},
-            )
+        self.client.post(
+            reverse("main:update_experience", args=[self.experience.id]),
+            self.payload,
+        )
 
         self.assertEqual(Experience.objects.count(), 1)
 
     def test_finished_checkbox_writes_and_clears_the_end_date(self):
         url = reverse("main:update_experience", args=[self.experience.id])
 
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.post(
-                url, {**self.payload, "is_finished": "on", "password": self.CODE}
-            )
-            self.experience.refresh_from_db()
-            self.assertIsNotNone(self.experience.ended_at)
-            self.assertFalse(self.experience.is_ongoing)
+        self.client.post(
+            url, {**self.payload, "is_finished": "on"}
+        )
+        self.experience.refresh_from_db()
+        self.assertIsNotNone(self.experience.ended_at)
+        self.assertFalse(self.experience.is_ongoing)
 
-            self.client.post(url, {**self.payload, "password": self.CODE})
-            self.experience.refresh_from_db()
-            self.assertIsNone(self.experience.ended_at)
-            self.assertTrue(self.experience.is_ongoing)
+        self.client.post(url, self.payload)
+        self.experience.refresh_from_db()
+        self.assertIsNone(self.experience.ended_at)
+        self.assertTrue(self.experience.is_ongoing)
 
     def test_experiences_json_endpoint(self):
         response = self.client.get(reverse("main:get_experiences_json"))
@@ -396,27 +392,26 @@ class ExperienceWriteTest(TestCase):
         )
 
     def test_delete_experience(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:delete_experience", args=[self.experience.id]),
-                {"password": self.CODE},
-            )
+        response = self.client.post(
+            reverse("main:delete_experience", args=[self.experience.id]),
+            {},
+        )
 
         self.assertRedirects(response, reverse("main:show_experience"))
         self.assertFalse(Experience.objects.filter(pk=self.experience.pk).exists())
 
-    def test_delete_experience_with_the_wrong_code(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.post(
-                reverse("main:delete_experience", args=[self.experience.id]),
-                {"password": "salah"},
-            )
+    def test_a_registered_account_cannot_delete(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
 
+        response = self.client.post(
+            reverse("main:delete_experience", args=[self.experience.id])
+        )
+
+        self.assertEqual(response.status_code, 403)
         self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
 
     def test_delete_experience_ignores_get(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            self.client.get(reverse("main:delete_experience", args=[self.experience.id]))
+        self.client.get(reverse("main:delete_experience", args=[self.experience.id]))
 
         self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
 
@@ -424,9 +419,9 @@ class ExperienceWriteTest(TestCase):
 class ProjectUpdateTest(TestCase):
     """The project page gained the same edit path as the experience page."""
 
-    CODE = "kode-uji"
-
     def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        self.client.force_login(self.owner)
         self.project = Project.objects.create(
             title="SCERA",
             description="Membaca jadwal dari portal mahasiswa.",
@@ -446,21 +441,194 @@ class ProjectUpdateTest(TestCase):
         self.assertContains(response, self.project.title)
 
     def test_update_project(self):
-        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
-            response = self.client.post(
-                reverse("main:update_project", args=[self.project.id]),
-                {
-                    "title": "SCERA v2",
-                    "description": self.project.description,
-                    "category": "desktop",
-                    "tech_stack": "C#, WinForms, SQLite",
-                    "project_url": "",
-                    "project_image_url": "",
-                    "password": self.CODE,
-                },
-            )
+        response = self.client.post(
+            reverse("main:update_project", args=[self.project.id]),
+            {
+                "title": "SCERA v2",
+                "description": self.project.description,
+                "category": "desktop",
+                "tech_stack": "C#, WinForms, SQLite",
+                "project_url": "",
+                "project_image_url": "",
+            },
+        )
 
         self.assertRedirects(response, reverse("main:show_projects"))
         self.project.refresh_from_db()
         self.assertEqual(self.project.title, "SCERA v2")
         self.assertEqual(Project.objects.count(), 1)
+
+
+class AuthenticationTest(TestCase):
+    """Register, login, logout, and the cookie that login leaves behind."""
+
+    def test_register_page_is_accessible(self):
+        response = self.client.get(reverse("main:register"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "register.html")
+
+    def test_register_creates_an_account(self):
+        response = self.client.post(
+            reverse("main:register"),
+            {
+                "username": "warga",
+                "password1": "Portofolio2026!",
+                "password2": "Portofolio2026!",
+            },
+        )
+
+        self.assertRedirects(response, reverse("main:login"))
+        self.assertTrue(User.objects.filter(username="warga").exists())
+
+    def test_register_rejects_mismatched_passwords(self):
+        response = self.client.post(
+            reverse("main:register"),
+            {
+                "username": "warga",
+                "password1": "Portofolio2026!",
+                "password2": "Berbeda2026!",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="warga").exists())
+
+    def test_login_signs_the_account_in(self):
+        User.objects.create_user("warga", password="Portofolio2026!")
+
+        response = self.client.post(
+            reverse("main:login"),
+            {"username": "warga", "password": "Portofolio2026!"},
+        )
+
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), User.objects.get(username="warga").pk)
+
+    def test_login_sets_the_last_login_cookie(self):
+        User.objects.create_user("warga", password="Portofolio2026!")
+
+        response = self.client.post(
+            reverse("main:login"),
+            {"username": "warga", "password": "Portofolio2026!"},
+        )
+
+        self.assertIn("last_login", response.cookies)
+
+    def test_the_profile_page_shows_the_cookie(self):
+        self.client.cookies["last_login"] = "2026-09-21 19:30:00"
+
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "2026-09-21 19:30:00")
+
+    def test_the_profile_page_copes_without_the_cookie(self):
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "Belum ada sesi login")
+
+    def test_login_rejects_a_wrong_password(self):
+        User.objects.create_user("warga", password="Portofolio2026!")
+
+        response = self.client.post(
+            reverse("main:login"),
+            {"username": "warga", "password": "salah"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_logout_clears_the_session_and_the_cookie(self):
+        User.objects.create_user("warga", password="Portofolio2026!")
+        self.client.post(
+            reverse("main:login"),
+            {"username": "warga", "password": "Portofolio2026!"},
+        )
+
+        response = self.client.get(reverse("main:logout"))
+
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(response.cookies["last_login"].value, "")
+
+    def test_the_login_page_offers_the_way_to_register(self):
+        response = self.client.get(reverse("main:login"))
+
+        self.assertContains(response, reverse("main:register"))
+
+    def test_the_navbar_follows_the_session(self):
+        anonymous = self.client.get(reverse("main:show_main"))
+        self.assertContains(anonymous, reverse("main:login"))
+        self.assertNotContains(anonymous, reverse("main:logout"))
+
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
+        signed_in = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(signed_in, "warga")
+        self.assertContains(signed_in, reverse("main:logout"))
+
+
+class StarTest(TestCase):
+    """Starring is open to any account, unlike writing portfolio data."""
+
+    def setUp(self):
+        self.project = Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.warga = User.objects.create_user("warga", password="rahasia-uji")
+        self.url = reverse("main:toggle_star", args=[self.project.id])
+
+    def test_a_visitor_is_sent_to_the_login_page(self):
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, "/login/?next=" + self.url)
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_a_registered_account_can_star(self):
+        self.client.force_login(self.warga)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("main:show_projects"))
+        self.assertIn(self.warga, self.project.starred_by.all())
+
+    def test_starring_twice_removes_the_star(self):
+        self.client.force_login(self.warga)
+
+        self.client.post(self.url)
+        self.client.post(self.url)
+
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_get_does_not_change_anything(self):
+        self.client.force_login(self.warga)
+
+        self.client.get(self.url)
+
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_the_api_names_the_accounts_rather_than_their_ids(self):
+        self.project.starred_by.add(self.warga)
+
+        response = self.client.get(reverse("main:get_projects_json"))
+
+        body = json.loads(response.content)
+        self.assertEqual(body[0]["fields"]["starred_by"], [["warga"]])
+
+    def test_owner_controls_stay_out_of_the_page_for_everyone_else(self):
+        edit = reverse("main:update_project", args=[self.project.id])
+
+        visitor = self.client.get(reverse("main:show_projects"))
+        self.assertNotContains(visitor, edit)
+
+        self.client.force_login(self.warga)
+        registered = self.client.get(reverse("main:show_projects"))
+        self.assertNotContains(registered, edit)
+
+        self.client.force_login(User.objects.create_superuser("pemilik", password="rahasia-uji"))
+        owner = self.client.get(reverse("main:show_projects"))
+        self.assertContains(owner, edit)

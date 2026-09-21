@@ -21,7 +21,12 @@
                 <a href="{% url 'main:show_main' %}"><i class="dia"></i>Home</a>
                 <a href="{% url 'main:show_projects' %}"><i class="dia"></i>Projects</a>
                 <a href="{% url 'main:show_experience' %}"><i class="dia"></i>Experience</a>
-                <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
+                {% if user.is_authenticated %}
+                    <span class="nav-user" title="Akun yang sedang login">{{ user.username }}</span>
+                    <a class="btn btn-external btn-sm" href="{% url 'main:logout' %}">Logout</a>
+                {% else %}
+                    <a class="btn btn-external btn-sm" href="{% url 'main:login' %}">Login</a>
+                {% endif %}
             </div>
 
             <button class="nav-burger" id="burger" type="button"
@@ -36,7 +41,12 @@
         <a href="{% url 'main:show_main' %}"><i class="dia"></i>Home</a>
         <a href="{% url 'main:show_projects' %}"><i class="dia"></i>Projects</a>
         <a href="{% url 'main:show_experience' %}"><i class="dia"></i>Experience</a>
-        <a class="btn btn-external btn-sm" href="mailto:muhammad.sultan51@ui.ac.id">Contact</a>
+        {% if user.is_authenticated %}
+            <span class="nav-user">{{ user.username }}</span>
+            <a class="btn btn-external btn-sm" href="{% url 'main:logout' %}">Logout</a>
+        {% else %}
+            <a class="btn btn-external btn-sm" href="{% url 'main:login' %}">Login</a>
+        {% endif %}
     </div>
 
     <main>

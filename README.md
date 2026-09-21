@@ -22,6 +22,10 @@ tersedia mentah dalam dua format:
 
 Keempatnya menerima `?title=` untuk menyaring berdasarkan judul.
 
+Pengunjung bisa membaca semuanya tanpa akun. Akun terdaftar bisa memberi star
+pada proyek. Menambah, mengubah, dan menghapus isi portofolio hanya bisa
+dilakukan pemilik, yaitu akun superuser.
+
 Sisi server memakai Django dengan pola MVT. Tampilannya HTML5 dan CSS3.
 JavaScript dipakai untuk lima hal: taburan bintang di hero, parallax antar
 lapisan langit, navbar yang menyingkir saat menggulir, menu layar sempit, dan
@@ -52,18 +56,21 @@ sendiri, isinya satu baris:
 
 ```
 PRODUCTION=False
-EDIT_PASSWORD=isi-sendiri
 ```
-
-`EDIT_PASSWORD` adalah kode akses untuk menambah dan menghapus proyek. Selama
-belum ada autentikasi, form dan tombol hapus menolak semua permintaan yang kode
-aksesnya tidak cocok. Nilainya tidak pernah masuk repositori, dan di PWS diisi
-lewat tab Environs.
 
 Nilai `PRODUCTION=False` memakai SQLite. Diubah ke `True`, proyek beralih ke PostgreSQL
 dengan kredensial dari `.env.prod`.
 
-Jalankan `python manage.py test` untuk menjalankan 40 test di `main/tests.py`.
+Buat akun pemilik supaya tombol tambah, ubah, dan hapus muncul:
+
+```bash
+python manage.py createsuperuser
+```
+
+Akun biasa dibuat lewat halaman `/register/`. Akun seperti itu bisa memberi star
+tetapi tidak bisa mengubah isi portofolio.
+
+Jalankan `python manage.py test` untuk menjalankan 57 test di `main/tests.py`.
 
 ## Struktur
 
@@ -75,13 +82,14 @@ Jalankan `python manage.py test` untuk menjalankan 40 test di `main/tests.py`.
 | `main/views.py` | tiga halaman, empat endpoint data, dan enam view tulis |
 | `main/urls.py` | rute halaman dan `/api/` dengan namespace `main` |
 | `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
-| `main/tests.py` | 40 test |
+| `main/tests.py` | 57 test |
 | `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
 | `templates/projects.html` | daftar proyek |
 | `templates/experience.html` | carousel pengalaman |
 | `templates/projects_form.html` | form tambah dan ubah proyek |
 | `templates/experience_form.html` | form tambah dan ubah pengalaman |
+| `templates/auth_form.html` | kerangka form akun, diwarisi register dan login |
 | `templates/components/` | potongan template yang dipakai ulang |
 | `static/css/style.css` | seluruh gaya |
 | `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D |
@@ -109,19 +117,25 @@ flowchart TD
         show["show_projects"]
         create["create_project"]
         api["get_projects_json"]
+        star["toggle_star"]
     end
 
     db[("tabel main_project")]
     page["projects.html extends base.html"]
-    invalid["projects_form.html + pesan error"]
+    invalid["403 Forbidden"]
 
     browser -->|"GET /projects/"| proj
     browser -->|"POST /projects/add/"| proj
+    browser -->|"POST /projects/id/star/"| proj
     proj -->|"include main.urls"| app
     app --> show
     app --> create
+    app --> star
 
-    create -->|"kode akses salah"| invalid
+    star -->|"belum login, redirect ke /login/"| login["login_user"]
+    star -->|"sudah login, tambah atau hapus star"| db
+
+    create -->|"bukan pemilik, 403"| invalid
     create -->|"form valid, simpan"| db
     create -->|"redirect"| show
 
@@ -186,6 +200,19 @@ gitGraph
 | Tugas 2 | model `Project`, halaman `/projects/`, kartu proyek digerakkan basis data, carousel pada `/experience/`, fixture dimuat saat migrasi, enam unit test tambahan |
 | Tutorial 03 | `ProjectForm`, penambahan dan penghapusan proyek lewat browser, pencarian judul, endpoint JSON dan XML, kode akses dari environment, dua belas unit test tambahan |
 | Tugas 3 | `ExperienceForm`, alur lengkap tambah, ubah, dan hapus pengalaman, endpoint JSON dan XML untuk pengalaman, halaman pengalaman dibaca lewat deserialisasi, tombol ubah untuk proyek, enam belas unit test tambahan |
+| Tutorial 04 | registrasi, login, logout, cookie `last_login`, tombol star pada proyek, penguncian view tulis untuk pemilik, enam belas unit test tambahan |
+
+## Peran
+
+| Peran | Membaca portofolio | Memberi star | Menambah, mengubah, menghapus |
+| --- | --- | --- | --- |
+| Pengunjung, belum login | bisa | tidak | tidak |
+| Akun terdaftar | bisa | bisa | tidak |
+| Pemilik, superuser | bisa | bisa | bisa |
+
+Pembatasannya ada di view lewat `@login_required` dan pemeriksaan `is_superuser`.
+Tombol yang disembunyikan di template hanya mengatur apa yang terlihat, bukan
+apa yang boleh dijalankan.
 
 ## Pertanyaan reflektif
 

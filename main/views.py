@@ -1,28 +1,36 @@
-import os
+import datetime
 
 from django.contrib import messages
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.core import serializers
+from django.core.exceptions import PermissionDenied
 from django.db.models import Max
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from main.forms import ExperienceForm, ProjectForm
+from main.forms import ExperienceForm, ProjectForm, SignUpForm
 from main.models import Experience, Project
 
 OWNER = "Muhammad Sultan Zidan"
 
 
-def _code_matches(given):
-    """The delete buttons post a bare field, so they check the secret here."""
-    expected = os.getenv("EDIT_PASSWORD", "")
-    return bool(expected) and given == expected
+
+def _owner_only(request):
+    """Registered is not the same as owner. Only the owner writes portfolio data."""
+    if not request.user.is_superuser:
+        raise PermissionDenied
 
 
 def show_main(request):
     context = {
         "name": OWNER,
+        "last_login": request.COOKIES.get(
+            "last_login", "Belum ada sesi login pada peramban ini"
+        ),
         "npm": "2506534876",
         "study_program": "S1 Ilmu Komputer",
         "bio": (
@@ -32,6 +40,67 @@ def show_main(request):
         ),
     }
     return render(request, "index.html", context)
+
+
+def register(request):
+    form = SignUpForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Akun berhasil dibuat. Silakan login.")
+        return redirect("main:login")
+
+    context = {
+        "name": OWNER,
+        "form": form,
+        "heading": "Buat Akun",
+        "submit_label": "Daftar",
+    }
+    return render(request, "register.html", context)
+
+
+def login_user(request):
+    form = AuthenticationForm(request, data=request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        login(request, form.get_user())
+        response = redirect("main:show_main")
+        # A cookie of our own, alongside the session one Django manages. It
+        # only tells the reader when this browser last signed in.
+        response.set_cookie(
+            "last_login",
+            datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+        return response
+
+    context = {
+        "name": OWNER,
+        "form": form,
+        "heading": "Login",
+        "submit_label": "Login",
+    }
+    return render(request, "login.html", context)
+
+
+def logout_user(request):
+    logout(request)
+    response = redirect("main:show_main")
+    response.delete_cookie("last_login")
+    return response
+
+
+@login_required(login_url="/login/")
+def toggle_star(request, project_id):
+    """Any signed-in account may star. Only writing portfolio data needs the owner."""
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == "POST":
+        if request.user in project.starred_by.all():
+            project.starred_by.remove(request.user)
+        else:
+            project.starred_by.add(request.user)
+
+    return redirect("main:show_projects")
 
 
 def _matching_experiences(request):
@@ -86,7 +155,9 @@ def _save_experience(form):
     return experience
 
 
+@login_required(login_url="/login/")
 def create_experience(request):
+    _owner_only(request)
     form = ExperienceForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
@@ -104,7 +175,9 @@ def create_experience(request):
     return render(request, "experience_form.html", context)
 
 
+@login_required(login_url="/login/")
 def update_experience(request, experience_id):
+    _owner_only(request)
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
 
@@ -123,14 +196,12 @@ def update_experience(request, experience_id):
     return render(request, "experience_form.html", context)
 
 
+@login_required(login_url="/login/")
 def delete_experience(request, experience_id):
+    _owner_only(request)
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method != "POST":
-        return redirect("main:show_experience")
-
-    if not _code_matches(request.POST.get("password")):
-        messages.error(request, "Kode akses salah, pengalaman tidak dihapus.")
         return redirect("main:show_experience")
 
     experience.delete()
@@ -150,12 +221,17 @@ def _matching_projects(request):
 
 
 def get_projects_json(request):
-    payload = serializers.serialize("json", _matching_projects(request))
+    # starred_by would otherwise leak database ids into a public endpoint.
+    payload = serializers.serialize(
+        "json", _matching_projects(request), use_natural_foreign_keys=True
+    )
     return HttpResponse(payload, content_type="application/json")
 
 
 def get_projects_xml(request):
-    payload = serializers.serialize("xml", _matching_projects(request))
+    payload = serializers.serialize(
+        "xml", _matching_projects(request), use_natural_foreign_keys=True
+    )
     return HttpResponse(payload, content_type="application/xml")
 
 
@@ -178,7 +254,9 @@ def show_projects(request):
     return render(request, "projects.html", context)
 
 
+@login_required(login_url="/login/")
 def create_project(request):
+    _owner_only(request)
     form = ProjectForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
@@ -202,7 +280,9 @@ def create_project(request):
     return render(request, "projects_form.html", context)
 
 
+@login_required(login_url="/login/")
 def update_project(request, project_id):
+    _owner_only(request)
     project = get_object_or_404(Project, pk=project_id)
     form = ProjectForm(request.POST or None, instance=project)
 
@@ -221,14 +301,12 @@ def update_project(request, project_id):
     return render(request, "projects_form.html", context)
 
 
+@login_required(login_url="/login/")
 def delete_project(request, project_id):
+    _owner_only(request)
     project = get_object_or_404(Project, pk=project_id)
 
     if request.method != "POST":
-        return redirect("main:show_projects")
-
-    if not _code_matches(request.POST.get("password")):
-        messages.error(request, "Kode akses salah, proyek tidak dihapus.")
         return redirect("main:show_projects")
 
     project.delete()
