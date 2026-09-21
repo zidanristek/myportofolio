@@ -184,9 +184,32 @@ Pesan commit mengikuti format Conventional Commits.
 
 ### Tugas 3
 
-1. [TK]
-2. [TK]
-3. [TK]
+1. `ModelForm` menurunkan field, validation, dan widget langsung dari model,
+   jadi rules-nya cuma ditulis sekali. Terbukti waktu saya bikin
+   `ExperienceForm`: field `thumbnail` yang tipenya `URLField` langsung menolak
+   `img/experience/banyumas.jpg` milik lima entri saya, sesuatu yang bakal lolos
+   kalau form-nya saya tulis manual dan baru gagal di database.
+   `{% csrf_token %}` wajib karena Django menolak POST tanpa token, gunanya
+   mencegah situs lain submit form atas nama visitor saya, dan itu saya buktikan
+   waktu POST ke `/projects/add/` di PWS tanpa token dibalas `403`.
+
+2. JSON memetakan langsung ke tipe bawaan hampir semua bahasa, object dan array
+   jadi `dict` dan `list` di Python atau object dan array di JavaScript, jadi
+   tidak butuh parser tambahan seperti XML yang harus ditelusuri sebagai tree
+   dulu. Ukurannya juga lebih kecil karena tiap value tidak ditutup closing tag:
+   enam project yang sama 2.920 byte sebagai JSON dan 4.812 byte sebagai XML,
+   65 persen lebih besar untuk isi yang identik.
+
+3. Request ke `/api/projects/` diteruskan `portofolio/urls.py` ke
+   `main/urls.py`, dipetakan ke `get_projects_json`, yang mengambil
+   `Project.objects.all()`, memfilternya kalau ada `?title=`, lalu menyerahkan
+   QuerySet itu ke `serializers.serialize("json", ...)` dan membungkusnya dengan
+   `HttpResponse(content_type="application/json")`. Serialization perlu karena
+   QuerySet berisi object Python hidup dengan `UUID`, `datetime`, dan query yang
+   masih lazy, sedangkan HTTP cuma mengangkut teks. Object-nya harus diratakan
+   jadi pasangan key dan value yang bisa dibaca ulang siapa pun, termasuk
+   `show_projects` saya sendiri yang mengurai balik lewat
+   `serializers.deserialize`.
 
 ## Penggunaan AI
 
