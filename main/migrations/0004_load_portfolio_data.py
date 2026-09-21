@@ -1,29 +1,20 @@
-"""Load the portfolio rows as part of migrating.
+"""Kept as a no-op so applied histories stay valid.
 
-PWS runs migrate during a build but never loaddata, and db.sqlite3 is not in
-the repository, so without this step a fresh deployment serves two empty
-pages. Keeping the data in fixtures rather than inline here means the same
-rows can be reloaded by hand with loaddata whenever that is useful.
+This migration used to load the fixtures. loaddata builds rows from the models
+as they are today, not as they were when the migration was written, so once
+later migrations added columns to Project the fixture no longer fitted the
+table that existed at this point and a fresh database could not migrate at all.
+
+The loading moved to the last migration, where the table always matches the
+fixture. Databases that already ran this one are unaffected: a migration is
+never applied twice.
 """
 
-from django.conf import settings
-from django.core.management import call_command
 from django.db import migrations
 
-FIXTURES = ["experience", "project"]
 
-
-def load(apps, schema_editor):
-    if settings.TESTING:
-        return
-    call_command("loaddata", *FIXTURES)
-
-
-def unload(apps, schema_editor):
-    if settings.TESTING:
-        return
-    apps.get_model("main", "Experience").objects.all().delete()
-    apps.get_model("main", "Project").objects.all().delete()
+def noop(apps, schema_editor):
+    pass
 
 
 class Migration(migrations.Migration):
@@ -33,5 +24,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(load, unload),
+        migrations.RunPython(noop, noop),
     ]
