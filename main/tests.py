@@ -252,3 +252,215 @@ class ProjectWriteTest(TestCase):
             self.client.get(reverse("main:delete_project", args=[self.project.id]))
 
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
+
+
+class ExperienceWriteTest(TestCase):
+    """Create, update, delete, and the two experience data endpoints."""
+
+    CODE = "kode-uji"
+
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Fund Winner RISTEK Hackathon 2026",
+            description="Biotopia memenangi hackathon dan mendapat pendanaan.",
+            category="research",
+            thumbnail="img/experience/ristek-hackathon.jpg",
+            position=1,
+        )
+        self.payload = {
+            "title": "Project Officer URBAN 2026",
+            "description": "Memimpin kepanitiaan URBAN 2026 milik Clubban UI.",
+            "category": "volunteer",
+            "thumbnail": "img/experience/banyumas.jpg",
+            "position": 2,
+        }
+
+    def test_create_page_is_accessible(self):
+        response = self.client.get(reverse("main:create_experience"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "experience_form.html")
+        self.assertContains(response, "Add Experience")
+
+    def test_create_experience(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            response = self.client.post(
+                reverse("main:create_experience"),
+                {**self.payload, "password": self.CODE},
+            )
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertTrue(Experience.objects.filter(title=self.payload["title"]).exists())
+
+    def test_create_experience_with_the_wrong_code(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            response = self.client.post(
+                reverse("main:create_experience"),
+                {**self.payload, "password": "salah"},
+            )
+
+        self.assertContains(response, "Kode akses salah.")
+        self.assertFalse(Experience.objects.filter(title=self.payload["title"]).exists())
+
+    def test_update_page_is_prefilled(self):
+        response = self.client.get(
+            reverse("main:update_experience", args=[self.experience.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "experience_form.html")
+        self.assertContains(response, self.experience.title)
+        self.assertContains(response, "Edit Experience")
+
+    def test_update_experience(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            response = self.client.post(
+                reverse("main:update_experience", args=[self.experience.id]),
+                {
+                    "title": "Judul Sudah Diubah",
+                    "description": self.experience.description,
+                    "category": "internship",
+                    "thumbnail": self.experience.thumbnail,
+                    "position": 3,
+                    "password": self.CODE,
+                },
+            )
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, "Judul Sudah Diubah")
+        self.assertEqual(self.experience.category, "internship")
+        self.assertEqual(self.experience.position, 3)
+
+    def test_update_does_not_create_a_second_row(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            self.client.post(
+                reverse("main:update_experience", args=[self.experience.id]),
+                {**self.payload, "password": self.CODE},
+            )
+
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_finished_checkbox_writes_and_clears_the_end_date(self):
+        url = reverse("main:update_experience", args=[self.experience.id])
+
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            self.client.post(
+                url, {**self.payload, "is_finished": "on", "password": self.CODE}
+            )
+            self.experience.refresh_from_db()
+            self.assertIsNotNone(self.experience.ended_at)
+            self.assertFalse(self.experience.is_ongoing)
+
+            self.client.post(url, {**self.payload, "password": self.CODE})
+            self.experience.refresh_from_db()
+            self.assertIsNone(self.experience.ended_at)
+            self.assertTrue(self.experience.is_ongoing)
+
+    def test_experiences_json_endpoint(self):
+        response = self.client.get(reverse("main:get_experiences_json"))
+
+        self.assertEqual(response["Content-Type"], "application/json")
+        body = json.loads(response.content)
+        self.assertEqual(body[0]["fields"]["title"], self.experience.title)
+
+    def test_experiences_json_filters_by_title(self):
+        Experience.objects.create(
+            title="Programmer of Game Development",
+            description="Divisi Game Development RISTEK.",
+            category="volunteer",
+            position=2,
+        )
+
+        response = self.client.get(
+            reverse("main:get_experiences_json"), {"title": "programmer"}
+        )
+
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+    def test_experiences_xml_endpoint(self):
+        response = self.client.get(reverse("main:get_experiences_xml"))
+
+        self.assertEqual(response["Content-Type"], "application/xml")
+        self.assertContains(response, "<django-objects")
+        self.assertContains(response, self.experience.title)
+
+    def test_edit_link_survives_the_json_round_trip(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(
+            response, reverse("main:update_experience", args=[self.experience.id])
+        )
+        self.assertContains(
+            response, reverse("main:delete_experience", args=[self.experience.id])
+        )
+
+    def test_delete_experience(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            response = self.client.post(
+                reverse("main:delete_experience", args=[self.experience.id]),
+                {"password": self.CODE},
+            )
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertFalse(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_delete_experience_with_the_wrong_code(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            self.client.post(
+                reverse("main:delete_experience", args=[self.experience.id]),
+                {"password": "salah"},
+            )
+
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_delete_experience_ignores_get(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            self.client.get(reverse("main:delete_experience", args=[self.experience.id]))
+
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+
+class ProjectUpdateTest(TestCase):
+    """The project page gained the same edit path as the experience page."""
+
+    CODE = "kode-uji"
+
+    def setUp(self):
+        self.project = Project.objects.create(
+            title="SCERA",
+            description="Membaca jadwal dari portal mahasiswa.",
+            category="tool",
+            cover="img/projects/scera.jpg",
+            cover_alt="Tangkapan layar SCERA",
+            tech_stack="C#, WinForms",
+            position=1,
+        )
+
+    def test_update_page_is_prefilled(self):
+        response = self.client.get(reverse("main:update_project", args=[self.project.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "projects_form.html")
+        self.assertContains(response, "Edit Project")
+        self.assertContains(response, self.project.title)
+
+    def test_update_project(self):
+        with patch.dict(os.environ, {"EDIT_PASSWORD": self.CODE}):
+            response = self.client.post(
+                reverse("main:update_project", args=[self.project.id]),
+                {
+                    "title": "SCERA v2",
+                    "description": self.project.description,
+                    "category": "desktop",
+                    "tech_stack": "C#, WinForms, SQLite",
+                    "project_url": "",
+                    "project_image_url": "",
+                    "password": self.CODE,
+                },
+            )
+
+        self.assertRedirects(response, reverse("main:show_projects"))
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.title, "SCERA v2")
+        self.assertEqual(Project.objects.count(), 1)
