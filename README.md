@@ -23,8 +23,8 @@ tersedia mentah dalam dua format:
 Keempatnya menerima `?title=` untuk menyaring berdasarkan judul.
 
 Pengunjung bisa membaca semuanya tanpa akun. Akun terdaftar bisa memberi star
-pada proyek. Menambah, mengubah, dan menghapus isi portofolio hanya bisa
-dilakukan pemilik, yaitu akun superuser.
+pada proyek dan pengalaman. Editor bisa mengubah keduanya. Menambah dan
+menghapus hanya bisa dilakukan pemilik.
 
 Sisi server memakai Django dengan pola MVT. Tampilannya HTML5 dan CSS3.
 JavaScript dipakai untuk lima hal: taburan bintang di hero, parallax antar
@@ -67,10 +67,10 @@ Buat akun pemilik supaya tombol tambah, ubah, dan hapus muncul:
 python manage.py createsuperuser
 ```
 
-Akun biasa dibuat lewat halaman `/register/`. Akun seperti itu bisa memberi star
-tetapi tidak bisa mengubah isi portofolio.
+Akun biasa dibuat lewat halaman `/register/`. Untuk menjadikannya editor, buka
+`/admin`, pilih akunnya, lalu masukkan ke grup `Editor`.
 
-Jalankan `python manage.py test` untuk menjalankan 57 test di `main/tests.py`.
+Jalankan `python manage.py test` untuk menjalankan 72 test di `main/tests.py`.
 
 ## Struktur
 
@@ -78,11 +78,12 @@ Jalankan `python manage.py test` untuk menjalankan 57 test di `main/tests.py`.
 | --- | --- |
 | `portofolio/` | settings dan routing tingkat proyek |
 | `main/models.py` | model `Experience` dan `Project` |
-| `main/forms.py` | `ProjectForm` dan `ExperienceForm`, keduanya `ModelForm` |
+| `main/forms.py` | `ProjectForm`, `ExperienceForm`, dan `SignUpForm` |
+| `main/admin.py` | `Experience` dan `Project` didaftarkan ke Django Admin |
 | `main/views.py` | tiga halaman, empat endpoint data, dan enam view tulis |
 | `main/urls.py` | rute halaman dan `/api/` dengan namespace `main` |
 | `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
-| `main/tests.py` | 57 test |
+| `main/tests.py` | 72 test |
 | `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
 | `templates/projects.html` | daftar proyek |
@@ -136,6 +137,9 @@ flowchart TD
     star -->|"sudah login, tambah atau hapus star"| db
 
     create -->|"bukan pemilik, 403"| invalid
+    app --> edit["update_project"]
+    edit -->|"tanpa change_project, 403"| invalid
+    edit -->|"editor atau pemilik, simpan"| db
     create -->|"form valid, simpan"| db
     create -->|"redirect"| show
 
@@ -201,18 +205,35 @@ gitGraph
 | Tutorial 03 | `ProjectForm`, penambahan dan penghapusan proyek lewat browser, pencarian judul, endpoint JSON dan XML, kode akses dari environment, dua belas unit test tambahan |
 | Tugas 3 | `ExperienceForm`, alur lengkap tambah, ubah, dan hapus pengalaman, endpoint JSON dan XML untuk pengalaman, halaman pengalaman dibaca lewat deserialisasi, tombol ubah untuk proyek, enam belas unit test tambahan |
 | Tutorial 04 | registrasi, login, logout, cookie `last_login`, tombol star pada proyek, penguncian view tulis untuk pemilik, enam belas unit test tambahan |
+| Tugas 4 | peran Editor lewat `Group` dan permission, star pada pengalaman, pembatasan empat peran di sisi server, empat belas unit test tambahan |
 
 ## Peran
 
-| Peran | Membaca portofolio | Memberi star | Menambah, mengubah, menghapus |
-| --- | --- | --- | --- |
-| Pengunjung, belum login | bisa | tidak | tidak |
-| Akun terdaftar | bisa | bisa | tidak |
-| Pemilik, superuser | bisa | bisa | bisa |
+| Peran | Membaca | Star | Mengubah | Menambah dan menghapus |
+| --- | --- | --- | --- | --- |
+| Pengunjung, belum login | bisa | tidak | tidak | tidak |
+| Akun terdaftar | bisa | bisa | tidak | tidak |
+| Editor | bisa | bisa | bisa | tidak |
+| Pemilik, superuser | bisa | bisa | bisa | bisa |
 
-Pembatasannya ada di view lewat `@login_required` dan pemeriksaan `is_superuser`.
-Tombol yang disembunyikan di template hanya mengatur apa yang terlihat, bukan
-apa yang boleh dijalankan.
+Pengunjung yang belum login diarahkan ke halaman login, karena langkah
+berikutnya jelas. Akun yang sudah login tetapi tidak berhak dibalas `403`,
+karena tidak ada langkah berikutnya untuknya.
+
+Peran Editor adalah `Group` bernama `Editor` yang memegang dua permission,
+`change_experience` dan `change_project`. Grupnya dibuat migrasi `0009`, jadi
+sudah ada di setiap pemasangan baru. Memasukkan akun ke dalamnya dilakukan
+lewat `/admin`.
+
+Pemeriksaannya membaca tabel permission Django, bukan nama grup:
+
+```python
+request.user.has_perm("main.change_experience")   # di view
+{% if perms.main.change_experience %}             # di template
+```
+
+Superuser lolos keduanya tanpa perlu masuk grup. Tombol yang disembunyikan di
+template hanya mengatur apa yang terlihat, bukan apa yang boleh dijalankan.
 
 ## Pertanyaan reflektif
 
@@ -314,6 +335,11 @@ apa yang boleh dijalankan.
    jadi pasangan key dan value yang bisa dibaca ulang siapa pun, termasuk
    `show_projects` saya sendiri yang mengurai balik lewat
    `serializers.deserialize`.
+
+### Tugas 4
+
+1. [TK]
+2. [TK]
 
 ## Penggunaan AI
 
@@ -489,3 +515,7 @@ terus sectionnya ga ketengah
 Hasilnya saya tempel balik ke section yang saya tunjuk, lalu saya buka
 halamannya sendiri. Beberapa kali jawabannya masih meleset dan saya ulang
 dengan instruksi yang lebih sempit.
+
+### Tugas 4
+
+[TK]

@@ -25,6 +25,9 @@ class Experience(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     position = models.PositiveSmallIntegerField(default=0)
+    starred_by = models.ManyToManyField(
+        User, related_name="starred_experiences", blank=True
+    )
 
     class Meta:
         # The carousel order is chosen, not chronological, so it is stored.
