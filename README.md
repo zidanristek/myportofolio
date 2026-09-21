@@ -8,11 +8,19 @@ Portofolio pribadi untuk mata kuliah Pemrograman Berbasis Platform (CSGE602022),
 Fakultas Ilmu Komputer Universitas Indonesia, Gasal 2026/2027.
 
 Tiga halaman. `/` berisi hero, About Me, dan Core Tech. `/projects/` memuat enam
-proyek beserta pencarian dan form penambahan, `/experience/` memuat lima
-pengalaman sebagai carousel. Isi kedua halaman daftar itu datang dari basis data
+proyek, `/experience/` memuat lima pengalaman sebagai carousel. Keduanya punya
+pencarian judul, form tambah, form ubah, dan tombol hapus. Isi kedua halaman daftar itu datang dari basis data
 lewat model `Project` dan `Experience`, bukan ditulis di HTML. Daftar proyek juga
-tersedia mentah di `/api/projects/` sebagai JSON dan `/api/projects/xml/` sebagai
-XML.
+tersedia mentah dalam dua format:
+
+| Endpoint | Isi |
+| --- | --- |
+| `/api/projects/` | daftar proyek, JSON |
+| `/api/projects/xml/` | daftar proyek, XML |
+| `/api/experiences/` | daftar pengalaman, JSON |
+| `/api/experiences/xml/` | daftar pengalaman, XML |
+
+Keempatnya menerima `?title=` untuk menyaring berdasarkan judul.
 
 Sisi server memakai Django dengan pola MVT. Tampilannya HTML5 dan CSS3.
 JavaScript dipakai untuk lima hal: taburan bintang di hero, parallax antar
@@ -55,7 +63,7 @@ lewat tab Environs.
 Nilai `PRODUCTION=False` memakai SQLite. Diubah ke `True`, proyek beralih ke PostgreSQL
 dengan kredensial dari `.env.prod`.
 
-Jalankan `python manage.py test` untuk menjalankan 24 test di `main/tests.py`.
+Jalankan `python manage.py test` untuk menjalankan 40 test di `main/tests.py`.
 
 ## Struktur
 
@@ -63,16 +71,17 @@ Jalankan `python manage.py test` untuk menjalankan 24 test di `main/tests.py`.
 | --- | --- |
 | `portofolio/` | settings dan routing tingkat proyek |
 | `main/models.py` | model `Experience` dan `Project` |
-| `main/forms.py` | `ProjectForm`, `ModelForm` untuk menambah proyek |
-| `main/views.py` | tujuh view: tiga halaman, satu form, satu hapus, dua endpoint data |
+| `main/forms.py` | `ProjectForm` dan `ExperienceForm`, keduanya `ModelForm` |
+| `main/views.py` | tiga halaman, empat endpoint data, dan enam view tulis |
 | `main/urls.py` | rute halaman dan `/api/` dengan namespace `main` |
 | `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
-| `main/tests.py` | 24 test |
+| `main/tests.py` | 40 test |
 | `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
 | `templates/projects.html` | daftar proyek |
 | `templates/experience.html` | carousel pengalaman |
-| `templates/projects_form.html` | form tambah proyek |
+| `templates/projects_form.html` | form tambah dan ubah proyek |
+| `templates/experience_form.html` | form tambah dan ubah pengalaman |
 | `templates/components/` | potongan template yang dipakai ulang |
 | `static/css/style.css` | seluruh gaya |
 | `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D |
@@ -99,6 +108,7 @@ Pesan commit mengikuti format Conventional Commits.
 | Tutorial 02 | aplikasi `main`, model `Experience`, data profil pindah ke context, halaman `/experience/`, routing dua level, enam unit test |
 | Tugas 2 | model `Project`, halaman `/projects/`, kartu proyek digerakkan basis data, carousel pada `/experience/`, fixture dimuat saat migrasi, enam unit test tambahan |
 | Tutorial 03 | `ProjectForm`, penambahan dan penghapusan proyek lewat browser, pencarian judul, endpoint JSON dan XML, kode akses dari environment, dua belas unit test tambahan |
+| Tugas 3 | `ExperienceForm`, alur lengkap tambah, ubah, dan hapus pengalaman, endpoint JSON dan XML untuk pengalaman, halaman pengalaman dibaca lewat deserialisasi, tombol ubah untuk proyek, enam belas unit test tambahan |
 
 ## Pertanyaan reflektif
 
@@ -171,6 +181,12 @@ Pesan commit mengikuti format Conventional Commits.
    tanggal, karena berkas `0003` sudah lahir tetapi halaman Experience tetap
    error sampai `migrate` dijalankan dan kolomnya benar-benar terbentuk di
    tabel.
+
+### Tugas 3
+
+1. [TK]
+2. [TK]
+3. [TK]
 
 ## Penggunaan AI
 
