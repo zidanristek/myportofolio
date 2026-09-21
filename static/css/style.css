@@ -1271,6 +1271,39 @@ body.menu-open {
     border-color: transparent;
 }
 
+/* A checkbox stretched to the full field width is a 100% wide grey slab, so
+   this one sits beside its label instead of under it. */
+
+.form-group-check {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.form-group-check label {
+    order: 2;
+    margin-bottom: 0;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.92rem;
+    color: var(--n-200);
+}
+
+.form-group-check input[type="checkbox"] {
+    order: 1;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    accent-color: var(--green-600);
+}
+
+.form-group-check .form-help {
+    order: 3;
+    flex: 1 0 100%;
+    margin-top: 0;
+}
+
 .form-help {
     margin-top: 0.35rem;
     font-size: 0.8rem;

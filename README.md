@@ -8,11 +8,19 @@ Portofolio pribadi untuk mata kuliah Pemrograman Berbasis Platform (CSGE602022),
 Fakultas Ilmu Komputer Universitas Indonesia, Gasal 2026/2027.
 
 Tiga halaman. `/` berisi hero, About Me, dan Core Tech. `/projects/` memuat enam
-proyek beserta pencarian dan form penambahan, `/experience/` memuat lima
-pengalaman sebagai carousel. Isi kedua halaman daftar itu datang dari basis data
+proyek, `/experience/` memuat lima pengalaman sebagai carousel. Keduanya punya
+pencarian judul, form tambah, form ubah, dan tombol hapus. Isi kedua halaman daftar itu datang dari basis data
 lewat model `Project` dan `Experience`, bukan ditulis di HTML. Daftar proyek juga
-tersedia mentah di `/api/projects/` sebagai JSON dan `/api/projects/xml/` sebagai
-XML.
+tersedia mentah dalam dua format:
+
+| Endpoint | Isi |
+| --- | --- |
+| `/api/projects/` | daftar proyek, JSON |
+| `/api/projects/xml/` | daftar proyek, XML |
+| `/api/experiences/` | daftar pengalaman, JSON |
+| `/api/experiences/xml/` | daftar pengalaman, XML |
+
+Keempatnya menerima `?title=` untuk menyaring berdasarkan judul.
 
 Sisi server memakai Django dengan pola MVT. Tampilannya HTML5 dan CSS3.
 JavaScript dipakai untuk lima hal: taburan bintang di hero, parallax antar
@@ -55,7 +63,7 @@ lewat tab Environs.
 Nilai `PRODUCTION=False` memakai SQLite. Diubah ke `True`, proyek beralih ke PostgreSQL
 dengan kredensial dari `.env.prod`.
 
-Jalankan `python manage.py test` untuk menjalankan 24 test di `main/tests.py`.
+Jalankan `python manage.py test` untuk menjalankan 40 test di `main/tests.py`.
 
 ## Struktur
 
@@ -63,21 +71,70 @@ Jalankan `python manage.py test` untuk menjalankan 24 test di `main/tests.py`.
 | --- | --- |
 | `portofolio/` | settings dan routing tingkat proyek |
 | `main/models.py` | model `Experience` dan `Project` |
-| `main/forms.py` | `ProjectForm`, `ModelForm` untuk menambah proyek |
-| `main/views.py` | tujuh view: tiga halaman, satu form, satu hapus, dua endpoint data |
+| `main/forms.py` | `ProjectForm` dan `ExperienceForm`, keduanya `ModelForm` |
+| `main/views.py` | tiga halaman, empat endpoint data, dan enam view tulis |
 | `main/urls.py` | rute halaman dan `/api/` dengan namespace `main` |
 | `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
-| `main/tests.py` | 24 test |
+| `main/tests.py` | 40 test |
 | `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
 | `templates/projects.html` | daftar proyek |
 | `templates/experience.html` | carousel pengalaman |
-| `templates/projects_form.html` | form tambah proyek |
+| `templates/projects_form.html` | form tambah dan ubah proyek |
+| `templates/experience_form.html` | form tambah dan ubah pengalaman |
 | `templates/components/` | potongan template yang dipakai ulang |
 | `static/css/style.css` | seluruh gaya |
 | `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D |
 | `static/img/` | foto, logo, sampul proyek, gambar pengalaman, ikon teknologi |
 | `static/model/object.fbx` | Makara UI untuk penampil 3D |
+
+## Arsitektur
+
+Satu permintaan halaman melewati dua berkas routing sebelum sampai ke view.
+Halaman daftar tidak membaca model secara langsung, melainkan memanggil endpoint
+JSON miliknya sendiri lalu membongkarnya kembali, sehingga bentuk yang dipakai
+halaman sama persis dengan yang dipakai client lain.
+
+```mermaid
+flowchart TD
+    browser["Browser"]
+    client["Client lain, misalnya Postman"]
+
+    subgraph routing["Routing"]
+        proj["portofolio/urls.py"]
+        app["main/urls.py"]
+    end
+
+    subgraph views["main/views.py"]
+        show["show_projects"]
+        create["create_project"]
+        api["get_projects_json"]
+    end
+
+    db[("tabel main_project")]
+    page["projects.html extends base.html"]
+    invalid["projects_form.html + pesan error"]
+
+    browser -->|"GET /projects/"| proj
+    browser -->|"POST /projects/add/"| proj
+    proj -->|"include main.urls"| app
+    app --> show
+    app --> create
+
+    create -->|"kode akses salah"| invalid
+    create -->|"form valid, simpan"| db
+    create -->|"redirect"| show
+
+    show -->|"panggil endpoint sendiri"| api
+    api -->|"Project.objects.all"| db
+    db -->|"QuerySet"| api
+    api -->|"serialize json"| show
+    show -->|"deserialize lalu render"| page
+
+    client -->|"GET /api/projects/"| api
+    page --> browser
+    invalid --> browser
+```
 
 ## Alur branch
 
@@ -89,6 +146,35 @@ Jalankan `python manage.py test` untuk menjalankan 24 test di `main/tests.py`.
 
 Pesan commit mengikuti format Conventional Commits.
 
+```mermaid
+gitGraph
+    commit id: "tutorial 0"
+    branch dev
+    checkout dev
+    commit id: "tutorial 01"
+    commit id: "tugas 1"
+    branch feat/tutorial-2-mvt
+    checkout feat/tutorial-2-mvt
+    commit id: "model"
+    commit id: "view dan routing"
+    commit id: "unit test"
+    checkout dev
+    merge feat/tutorial-2-mvt
+    checkout main
+    merge dev tag: "v0.4.0"
+    checkout dev
+    branch feat/tugas-3-experience-crud
+    checkout feat/tugas-3-experience-crud
+    commit id: "model form"
+    commit id: "create update delete"
+    commit id: "unit test"
+    checkout dev
+    merge feat/tugas-3-experience-crud
+    checkout main
+    merge dev tag: "v0.7.0"
+```
+
+
 ## Progres mingguan
 
 | Minggu | Yang dikerjakan |
@@ -99,6 +185,7 @@ Pesan commit mengikuti format Conventional Commits.
 | Tutorial 02 | aplikasi `main`, model `Experience`, data profil pindah ke context, halaman `/experience/`, routing dua level, enam unit test |
 | Tugas 2 | model `Project`, halaman `/projects/`, kartu proyek digerakkan basis data, carousel pada `/experience/`, fixture dimuat saat migrasi, enam unit test tambahan |
 | Tutorial 03 | `ProjectForm`, penambahan dan penghapusan proyek lewat browser, pencarian judul, endpoint JSON dan XML, kode akses dari environment, dua belas unit test tambahan |
+| Tugas 3 | `ExperienceForm`, alur lengkap tambah, ubah, dan hapus pengalaman, endpoint JSON dan XML untuk pengalaman, halaman pengalaman dibaca lewat deserialisasi, tombol ubah untuk proyek, enam belas unit test tambahan |
 
 ## Pertanyaan reflektif
 
@@ -171,6 +258,35 @@ Pesan commit mengikuti format Conventional Commits.
    tanggal, karena berkas `0003` sudah lahir tetapi halaman Experience tetap
    error sampai `migrate` dijalankan dan kolomnya benar-benar terbentuk di
    tabel.
+
+### Tugas 3
+
+1. `ModelForm` menurunkan field, validation, dan widget langsung dari model,
+   jadi rules-nya cuma ditulis sekali. Terbukti waktu saya bikin
+   `ExperienceForm`: field `thumbnail` yang tipenya `URLField` langsung menolak
+   `img/experience/banyumas.jpg` milik lima entri saya, sesuatu yang bakal lolos
+   kalau form-nya saya tulis manual dan baru gagal di database.
+   `{% csrf_token %}` wajib karena Django menolak POST tanpa token, gunanya
+   mencegah situs lain submit form atas nama visitor saya, dan itu saya buktikan
+   waktu POST ke `/projects/add/` di PWS tanpa token dibalas `403`.
+
+2. JSON memetakan langsung ke tipe bawaan hampir semua bahasa, object dan array
+   jadi `dict` dan `list` di Python atau object dan array di JavaScript, jadi
+   tidak butuh parser tambahan seperti XML yang harus ditelusuri sebagai tree
+   dulu. Ukurannya juga lebih kecil karena tiap value tidak ditutup closing tag:
+   enam project yang sama 2.920 byte sebagai JSON dan 4.812 byte sebagai XML,
+   65 persen lebih besar untuk isi yang identik.
+
+3. Request ke `/api/projects/` diteruskan `portofolio/urls.py` ke
+   `main/urls.py`, dipetakan ke `get_projects_json`, yang mengambil
+   `Project.objects.all()`, memfilternya kalau ada `?title=`, lalu menyerahkan
+   QuerySet itu ke `serializers.serialize("json", ...)` dan membungkusnya dengan
+   `HttpResponse(content_type="application/json")`. Serialization perlu karena
+   QuerySet berisi object Python hidup dengan `UUID`, `datetime`, dan query yang
+   masih lazy, sedangkan HTTP cuma mengangkut teks. Object-nya harus diratakan
+   jadi pasangan key dan value yang bisa dibaca ulang siapa pun, termasuk
+   `show_projects` saya sendiri yang mengurai balik lewat
+   `serializers.deserialize`.
 
 ## Penggunaan AI
 
@@ -262,3 +378,87 @@ pun diubah. Hal kecil juga terjadi waktu saya menambahkan tautan Home ke
 navbar. Yang masuk malah dua, dan baru ketahuan setelah saya lihat halamannya.
 Kesimpulan saya sama seperti Tugas 1. Kodenya cepat jadi, tapi yang menentukan
 benar atau tidak tetap saya, setelah melihat hasilnya di layar.
+
+### Tugas 3
+
+AI yang saya pakai minggu ini cuma Claude, dan pemakaiannya terbatas pada dua
+hal: membenahi bug dan memperbaiki layout yang rusak. Contoh paling jelas waktu
+saya ingin kartu di halaman Experience bisa looping.
+
+**Cara saya memakainya.** Saya salin section yang mau diubah ke Claude, lalu
+saya tanya misalnya kartu ini kalau mau diubah begini caranya bagaimana,
+hasilnya saya tempel balik ke section-nya. Saya tetap minta bantuan, tapi saya
+tahu itu section yang mana dan fungsinya apa, jadi bukan copy paste sembarangan.
+
+**Bagian yang dikerjakan Claude.** Perbaikan visualnya, bukan penentuan
+strukturnya.
+
+**Bagian yang bukan dari Claude.** Penentuan section dan div, termasuk mengukur
+ukurannya, murni dari saya. Saya lebih paham membangun website seperti ini, dan
+kalau strukturnya Claude yang menyusun, ujung-ujungnya rusak dan tetap harus
+saya review ulang.
+
+**Keterbatasannya.** Waktu saya menempelkan section untuk diperbaiki, Claude
+ikut mengubah tampilan yang tidak saya minta dan menambahkan teks yang tidak
+pernah saya sebut. Saya undo, lalu saya perjelas instruksinya supaya yang
+disentuh hanya bagian yang saya tunjuk.
+
+Tiga tebakan lain juga meleset minggu ini, dan ketiganya baru ketahuan setelah
+dijalankan. Form pengalaman ditulis dengan asumsi field `thumbnail` yang
+bertipe `URLField` menerima jalur `img/experience/banyumas.jpg`, padahal
+ditolak, dan percobaan perbaikan pertama mengosongkan validator di sisi form
+yang tetap gagal karena validasinya berjalan di lapisan model. Carousel looping
+butuh tiga percobaan, dua yang pertama masih menyisakan ruang kosong waktu
+halaman di-zoom out karena lebar layar bisa melebihi satu putaran daftar. Dan
+klon carousel awalnya dibuat tanpa tombol, lalu setelah tombolnya diminta ikut
+ternyata dialog hapus di klon tidak pernah terbuka sampai id-nya diberi akhiran
+unik, karena `popovertarget` berhenti di elemen pertama yang namanya cocok.
+
+Kesimpulannya sama seperti dua minggu sebelumnya. Kodenya cepat jadi, tapi yang
+memastikan benar tetap saya, setelah membuka halamannya sendiri.
+
+**Pola prompting.** Ditulis ulang dari percakapan, bukan transkrip mentah.
+
+````
+<div class="experience-grid" id="experience-track" tabindex="0">
+    {% for experience in experience_list %}
+        <article class="card experience-card">
+            ...
+        </article>
+    {% endfor %}
+</div>
+
+ini bisa dibikin looping ga? jadi tetap mulai dari kartu pertama
+tapi di kirinya udah kelihatan kartu yang paling akhir
+````
+
+````
+klonnya kok kosong ya, isinya ga ikut kerender.
+tombol Ubah sama Hapusnya juga harusnya ada dong
+````
+
+````
+masih sama aja. maunya tiap geser satu langsung nyambung,
+terus pas di-zoom out kartunya tetep penuh satu layar
+````
+
+````
+thumbnail = models.URLField(blank=True, null=True)
+
+kenapa ga bisa kesimpen ya? errornya "Enter a valid URL."
+padahal isinya img/experience/banyumas.jpg
+````
+
+````
+.site-footer {
+    padding: 3rem 0 7rem;
+    background: var(--gradient-footer);
+}
+
+footernya rusak kalau di-zoom out, ga nempel bawah
+terus sectionnya ga ketengah
+````
+
+Hasilnya saya tempel balik ke section yang saya tunjuk, lalu saya buka
+halamannya sendiri. Beberapa kali jawabannya masih meleset dan saya ulang
+dengan instruksi yang lebih sempit.
