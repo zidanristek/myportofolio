@@ -3,24 +3,21 @@
 {% block title %}{{ heading }} - {{ name }}{% endblock %}
 
 {% block content %}
-        <section class="section page-section" id="add-project">
+        <section class="section page-section" id="experience-form">
             <header class="section-head shell">
                 <h1 class="section-title">{{ heading }}</h1>
             </header>
 
             <div class="shell form-shell">
-                <form method="post" action="{{ form_action }}"
-                      class="card project-form">
+                <form method="post" action="{{ form_action }}" class="card project-form">
                     {% csrf_token %}
 
-                    {% if form.non_field_errors %}
-                        {% for error in form.non_field_errors %}
-                            <p class="form-error">{{ error }}</p>
-                        {% endfor %}
-                    {% endif %}
+                    {% for error in form.non_field_errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
 
                     {% for field in form %}
-                        <div class="form-group">
+                        <div class="form-group{% if field.name == 'is_finished' %} form-group-check{% endif %}">
                             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
                             {% if field.help_text %}
@@ -34,7 +31,7 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
-                        <a href="{% url 'main:show_projects' %}" class="btn btn-external">Batal</a>
+                        <a href="{% url 'main:show_experience' %}" class="btn btn-external">Batal</a>
                     </div>
                 </form>
             </div>
