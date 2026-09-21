@@ -17,7 +17,10 @@ class Experience(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.CharField(max_length=20, choices=EXPERIENCE_CHOICES, default='full-time')
-    thumbnail = models.URLField(blank=True, null=True)
+    # Holds either a path under static, which is how the entries that ship with
+    # the repository point at their artwork, or a full URL for anything added
+    # later through the form. URLField would reject the first kind.
+    thumbnail = models.CharField(max_length=500, blank=True, null=True)
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     position = models.PositiveSmallIntegerField(default=0)
