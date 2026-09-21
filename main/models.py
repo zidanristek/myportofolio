@@ -1,5 +1,6 @@
 import uuid
 
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -60,6 +61,9 @@ class Project(models.Model):
     project_url = models.URLField(blank=True)
     tech_stack = models.CharField(max_length=255)
     position = models.PositiveSmallIntegerField(default=0)
+    # One project can be starred by many accounts, and one account can star
+    # many projects, so the link lives in a table of its own.
+    starred_by = models.ManyToManyField(User, related_name="starred_projects", blank=True)
 
     class Meta:
         # The order is curated rather than chronological, so it is stored
