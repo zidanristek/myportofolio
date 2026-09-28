@@ -338,8 +338,33 @@ template hanya mengatur apa yang terlihat, bukan apa yang boleh dijalankan.
 
 ### Tugas 4
 
-1. [TK]
-2. [TK]
+1. Saya sudah paham konsep auth sebelumnya, biasanya pakai Supabase karena
+   sudah all in di situ, tinggal panggil `signUp` dan `signInWithPassword`. Di
+   Django dipecah dua kelas, `UserCreationForm` buat register dan
+   `AuthenticationForm` buat login, dan jujur awalnya kelihatan lebih ribet
+   karena harus bikin class dulu. Tapi yang saya dapat gratis banyak: validator
+   password bawaan, pengecekan username sudah dipakai, hashing PBKDF2 tanpa
+   saya sentuh, dan pengecekan `is_active` waktu login. Kalau nulis form
+   manual, `is_active` itu yang pasti saya lupa. Yang saya ubah sendiri cuma
+   memindahkan `help_text` aturan password dari `password1` ke `password2`,
+   supaya konfirmasi duduk persis di bawah password.
+2. Yang masuk browser cuma `sessionid`, string acak yang tidak berarti kalau
+   dibaca. Data aslinya termasuk `_auth_user_id` duduk di tabel
+   `django_session`. Awalnya saya pikir kuno karena di Node.js saya biasa pakai
+   JSON Web Token yang payload-nya dibaca client, tapi ya balik lagi ke
+   trade-off. JWT stateless jadi enak buat banyak service, konsekuensinya token
+   yang sudah keluar tetap sah sampai `exp` habis dan tidak bisa dibatalkan
+   tanpa blacklist, yang ujungnya stateful juga. Session Django kebalikannya,
+   `logout()` hapus barisnya jadi mati detik itu. Untuk satu server begini
+   session lebih pas, dan payload-nya tidak pernah ada di klien.
+3. Di template saya menyembunyikan tombol pakai
+   `{% if perms.main.change_experience %}`, tapi itu soal tampilan, bukan
+   keamanan. Tombol yang disembunyikan tetap punya URL, siapa pun bisa POST ke
+   `/experience/<uuid>/delete/` pakai `curl`. Penjagaan sebenarnya di view
+   lewat `_owner_only` dan `_may_change`, dan saya mengujinya dari sisi server:
+   tiap peran mencoba create, change, delete langsung ke URL-nya, bukan dicek
+   dari ada-tidaknya tombol di HTML. Kebawa dari Supabase, di sana kalau cuma
+   sembunyikan tombol tapi lupa RLS policy, tabelnya terbuka.
 
 ## Penggunaan AI
 
@@ -518,4 +543,81 @@ dengan instruksi yang lebih sempit.
 
 ### Tugas 4
 
-[TK]
+AI yang saya pakai pekan ini Claude, dan jujur alasannya karena sudah nyaman
+dan sudah banyak saya setup sendiri pakai skill dan knowledge yang saya punya,
+jadi jawabannya nyambung ke cara saya kerja tanpa harus dijelaskan dari nol
+tiap kali.
+
+Alurnya tetap sama seperti pekan-pekan sebelumnya: nulis, error, baru fix. Saya
+tempel dulu template dari tutorial, saya tulis ulang menyesuaikan model saya
+sendiri, dan baru pas ketemu error saya paste potongan kodenya ke Claude lalu
+minta diperbaiki. Bagian yang sengaja tidak saya libatkan AI justru bagian
+nulis kodenya, karena kalau semuanya diserahkan ke AI saya tidak akan tahu
+alurnya, tapi kalau semuanya manual juga tidak efisien waktu. Jadi AI masuk
+sebagai pembimbing waktu macet, bukan sebagai penulis.
+
+Strategi prompting saya sederhana: paste potongan kode yang error apa adanya,
+kadang plus pesan error-nya, lalu minta diperbaiki. Bagian yang paling banyak
+dibantu bukan logika Django-nya, tapi tata letak CSS, terutama positioning
+supaya bottom bar dan section-nya duduk di tempat yang benar waktu di-zoom out.
+Selain itu saya juga minta dibantu menyusun sebagian dokumentasi.
+
+Keterbatasan yang paling jelas: Claude tidak otomatis menyesuaikan diri dengan
+batasan tugas. Untuk auth, saran awalnya malah merekomendasikan library lain
+padahal tugas ini mewajibkan sistem autentikasi bawaan Django, jadi saya harus
+membatasi sendiri di prompt bahwa tidak boleh ada dependensi baru dan hanya
+boleh pakai `UserCreationForm`, `AuthenticationForm`, `Group`, dan `Permission`.
+Kalau saran itu saya ikuti buta, proyeknya jalan tapi langsung keluar dari
+rubrik. Dari situ saya belajar bahwa batasan tugas harus saya sebutkan sendiri
+di prompt, karena AI cuma tahu apa yang saya kasih dan tidak tahu soal panduan
+yang sedang saya ikuti.
+**Pola prompting.** Ditulis ulang dari percakapan, bukan transkrip mentah.
+
+````
+coba ini kira-kira kalau misal saya mau ada peran editor yang cuma boleh
+ngubah tapi ga boleh nambah atau hapus, gimana? tanpa nambah library ya,
+harus pakai bawaan Django
+````
+
+````
+group, _ = Group.objects.get_or_create(name="Editor")
+group.permissions.set(Permission.objects.filter(codename__in=PERMISSIONS))
+
+grupnya kebentuk tapi permissionnya kosong pas di database baru.
+padahal di database lama aman
+````
+
+````
+akun editor udah masuk grup tapi tombol Ubahnya ga muncul.
+`{% if user.is_editor %}` gini bener ga sih?
+````
+
+````
+python manage.py migrate
+
+Could not load main.Project: no such column: project_image_url
+
+ini kenapa ya? padahal di laptop saya jalan. baru error pas saya coba
+clone ulang ke folder baru
+````
+
+````
+testnya jadi 38 detik dari tadinya 2 detik. yang saya tambahin cuma
+bikin akun di setUp. kira-kira yang lambat apa?
+````
+
+````
+.project-toolbar {
+    display: flex;
+    gap: 1rem;
+}
+
+tombol starnya ga sejajar sama tombol Ubah kalau layarnya dikecilin,
+terus posisinya malah turun sendiri
+````
+
+Hasilnya saya tempel balik ke berkas yang saya tunjuk, lalu saya jalankan
+`manage.py test` dan buka halamannya sendiri. Yang soal peran Editor sempat
+meleset dua kali, karena jawaban pertamanya memeriksa nama grup dan jawaban
+kedua memakai atribut yang tidak ada di model `User`, jadi saya persempit
+instruksinya sampai ketemu `has_perm`.
