@@ -1019,6 +1019,12 @@ body.menu-open {
     color: var(--n-300);
 }
 
+/* The projects page swaps between its loading, error, empty and card states. */
+
+.hide {
+    display: none !important;
+}
+
 /* Decorative only, so browsers without scroll-driven animations simply get
    an undimmed carousel rather than a JavaScript reimplementation of one. */
 

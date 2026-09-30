@@ -10,8 +10,9 @@
             </header>
 
             <div class="shell project-toolbar">
-                <form method="get" action="{% url 'main:show_projects' %}" class="project-search">
-                    <input type="search" name="title" value="{{ title_query }}"
+                {# No method or action: the submit handler below takes both over. #}
+                <form id="project-search-form" class="project-search">
+                    <input type="search" id="search-input" name="title" value="{{ title_query }}"
                            class="project-search-input"
                            placeholder="Cari nama proyek"
                            aria-label="Cari nama proyek">
@@ -29,47 +30,172 @@
                 {% endif %}
             </div>
 
-            <div class="shell project-grid">
-                {% for project in project_list %}
-                    <article class="card project-card">
-                        {% if project.cover %}
-                            <img class="project-cover" src="{% static project.cover %}"
-                                 alt="{{ project.cover_alt }}" width="880" height="550" loading="lazy">
-                        {% elif project.project_image_url %}
-                            <img class="project-cover" src="{{ project.project_image_url }}"
-                                 alt="Sampul {{ project.title }}" width="880" height="550" loading="lazy">
-                        {% endif %}
-                        <div class="project-body">
-                            <p class="card-kind">{{ project.get_category_display }}</p>
-                            <h2 class="card-heading">{{ project.title }}</h2>
-                            <p class="card-text">{{ project.description }}</p>
-                            <ul class="pill-list">
-                                {% for tech in project.tech_list %}
-                                    <li class="pill">{{ tech }}</li>
-                                {% endfor %}
-                            </ul>
-                            <div class="project-actions">
-                                {% if project.project_url %}
-                                    <a href="{{ project.project_url }}" class="btn btn-secondary btn-sm">Lihat proyek</a>
-                                {% endif %}
-                                {% include "components/project_star.html" with project=project %}
-                                {% if perms.main.change_project %}
-                                    <a href="{% url 'main:update_project' project.id %}"
-                                       class="btn btn-secondary btn-sm">Ubah</a>
-                                {% endif %}
-                                {% if user.is_superuser %}
-                                    {% include "components/project_delete_modal.html" with project=project %}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </article>
-                {% empty %}
-                    {% if title_query %}
-                        <p class="empty-state">Tidak ada proyek dengan nama tersebut.</p>
-                    {% else %}
-                        <p class="empty-state">Belum ada proyek yang ditambahkan.</p>
-                    {% endif %}
-                {% endfor %}
+            <div class="shell">
+                <p id="loading" class="empty-state hide">Memuat proyek...</p>
+                <p id="error" class="empty-state hide">Gagal memuat proyek. Coba muat ulang halaman.</p>
+                <p id="empty" class="empty-state hide">Belum ada proyek yang ditambahkan.</p>
             </div>
+
+            <div id="grid" class="shell project-grid hide"></div>
         </section>
+
+    <script>
+    const PROJECTS_ENDPOINT = "{% url 'main:get_projects_json' %}";
+    const CAN_CHANGE = "{{ perms.main.change_project|yesno:'true,false' }}" === "true";
+    const IS_OWNER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const CSRF_TOKEN = "{{ csrf_token }}";
+
+    // Every url below is built from one dummy key, because the template tag
+    // needs a valid UUID at render time and the real ones only arrive as JSON.
+    const DUMMY_ID = "00000000-0000-0000-0000-000000000000";
+    const EDIT_URL = "{% url 'main:update_project' '00000000-0000-0000-0000-000000000000' %}";
+    const DELETE_URL = "{% url 'main:delete_project' '00000000-0000-0000-0000-000000000000' %}";
+    const STAR_URL = "{% url 'main:toggle_star' '00000000-0000-0000-0000-000000000000' %}";
+
+    const loadingState = document.getElementById("loading");
+    const errorState = document.getElementById("error");
+    const emptyState = document.getElementById("empty");
+    const grid = document.getElementById("grid");
+    const searchForm = document.getElementById("project-search-form");
+    const searchInput = document.getElementById("search-input");
+
+    let projectsRequest;
+
+    // Django escapes every {{ variable }} on its own. Once the cards are built
+    // here they reach the page through innerHTML, where a title carrying a tag
+    // would run as markup, so the escaping has to be done by hand.
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function showOnly({ loading = false, error = false, empty = false, cards = false }) {
+        loadingState.classList.toggle("hide", !loading);
+        errorState.classList.toggle("hide", !error);
+        emptyState.classList.toggle("hide", !empty);
+        grid.classList.toggle("hide", !cards);
+    }
+
+    function buildCard(item) {
+        const project = item.fields;
+        const csrf = `<input type="hidden" name="csrfmiddlewaretoken" value="${CSRF_TOKEN}">`;
+
+        const cover = project.cover_url
+            ? `<img class="project-cover" src="${escapeHtml(project.cover_url)}"
+                    alt="${escapeHtml(project.cover_alt)}" width="880" height="550" loading="lazy">`
+            : "";
+
+        const pills = project.tech_list
+            .map(tech => `<li class="pill">${escapeHtml(tech)}</li>`)
+            .join("");
+
+        const visit = project.project_url
+            ? `<a href="${escapeHtml(project.project_url)}" class="btn btn-secondary btn-sm">Lihat proyek</a>`
+            : "";
+
+        const starTitle = project.star_count
+            ? `Dibintangi oleh ${escapeHtml(project.starred_by_names)}`
+            : "Jadilah yang pertama memberi star";
+        const star = `
+            <form method="post" action="${STAR_URL.replace(DUMMY_ID, item.pk)}" class="star-form">
+                ${csrf}
+                <button type="submit" class="btn btn-sm btn-star${project.is_starred ? " is-starred" : ""}"
+                        title="${starTitle}">
+                    <span aria-hidden="true">&#9733;</span>
+                    ${project.is_starred ? "Unstar" : "Star"}
+                    <span class="star-count">${project.star_count}</span>
+                </button>
+            </form>`;
+
+        const edit = CAN_CHANGE
+            ? `<a href="${EDIT_URL.replace(DUMMY_ID, item.pk)}" class="btn btn-secondary btn-sm">Ubah</a>`
+            : "";
+
+        // The popover dialog the server used to render carried one id per card.
+        // Rebuilding that here would mean minting ids in JavaScript, so a card
+        // made by JavaScript asks with the browser's own confirm instead.
+        const remove = IS_OWNER
+            ? `<form method="post" action="${DELETE_URL.replace(DUMMY_ID, item.pk)}"
+                     class="delete-form" data-title="${escapeHtml(project.title)}">
+                ${csrf}
+                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+            </form>`
+            : "";
+
+        const card = document.createElement("article");
+        card.className = "card project-card";
+        card.innerHTML = `
+            ${cover}
+            <div class="project-body">
+                <p class="card-kind">${escapeHtml(project.category)}</p>
+                <h2 class="card-heading">${escapeHtml(project.title)}</h2>
+                <p class="card-text">${escapeHtml(project.description)}</p>
+                <ul class="pill-list">${pills}</ul>
+                <div class="project-actions">
+                    ${visit}
+                    ${star}
+                    ${edit}
+                    ${remove}
+                </div>
+            </div>`;
+        return card;
+    }
+
+    async function fetchProjects(query = "") {
+        // A slow first request must not land on top of a later, narrower one.
+        if (projectsRequest) projectsRequest.abort();
+        projectsRequest = new AbortController();
+
+        showOnly({ loading: true });
+
+        try {
+            const url = query
+                ? `${PROJECTS_ENDPOINT}?title=${encodeURIComponent(query)}`
+                : PROJECTS_ENDPOINT;
+            const response = await fetch(url, {
+                headers: { "Accept": "application/json" },
+                signal: projectsRequest.signal,
+            });
+            if (!response.ok) throw new Error("status " + response.status);
+
+            const projects = await response.json();
+
+            if (projects.length === 0) {
+                emptyState.textContent = query
+                    ? "Tidak ada proyek dengan nama tersebut."
+                    : "Belum ada proyek yang ditambahkan.";
+                showOnly({ empty: true });
+                return;
+            }
+
+            grid.replaceChildren(...projects.map(buildCard));
+            showOnly({ cards: true });
+        } catch (error) {
+            if (error.name === "AbortError") return;
+            console.error("Gagal memuat proyek:", error);
+            showOnly({ error: true });
+        }
+    }
+
+    // One listener on the container, because the forms inside it are replaced
+    // on every search and would each need rebinding otherwise.
+    grid.addEventListener("submit", function (event) {
+        const form = event.target.closest(".delete-form");
+        if (!form) return;
+        if (!confirm(`Hapus ${form.dataset.title}? Proyek ini tidak bisa dikembalikan.`)) {
+            event.preventDefault();
+        }
+    });
+
+    searchForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        fetchProjects(searchInput.value.trim());
+    });
+
+    fetchProjects(searchInput.value.trim());
+    </script>
 {% endblock %}
