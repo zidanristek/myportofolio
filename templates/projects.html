@@ -61,6 +61,11 @@
 
     let projectsRequest;
 
+    // Long enough that a word being typed does not turn into one request per
+    // letter, short enough that the list still feels like it answers at once.
+    const SEARCH_DELAY = 300;
+    let searchTimer;
+
     // Django escapes every {{ variable }} on its own. Once the cards are built
     // here they reach the page through innerHTML, where a title carrying a tag
     // would run as markup, so the escaping has to be done by hand.
@@ -191,9 +196,21 @@
         }
     });
 
+    function search() {
+        fetchProjects(searchInput.value.trim());
+    }
+
+    // Each keystroke cancels the previous timer, so the request only leaves
+    // once the typing stops.
+    searchInput.addEventListener("input", function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(search, SEARCH_DELAY);
+    });
+
     searchForm.addEventListener("submit", function (event) {
         event.preventDefault();
-        fetchProjects(searchInput.value.trim());
+        clearTimeout(searchTimer);
+        search();
     });
 
     fetchProjects(searchInput.value.trim());
