@@ -82,15 +82,28 @@ class ProjectTest(TestCase):
         self.assertTemplateUsed(response, "projects.html")
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
 
-    def test_project_data_is_rendered(self):
+    def test_project_data_reaches_the_endpoint_the_page_reads(self):
+        response = self.client.get(reverse("main:get_projects_json"))
+
+        fields = json.loads(response.content)[0]["fields"]
+        self.assertEqual(fields["title"], self.project.title)
+        self.assertEqual(fields["description"], self.project.description)
+        self.assertEqual(fields["category"], "Roblox Game")
+        self.assertEqual(fields["cover_alt"], self.project.cover_alt)
+        self.assertEqual(fields["tech_list"], ["Roblox Studio", "Lua", "Blender"])
+
+    def test_a_static_cover_is_sent_as_a_url(self):
+        response = self.client.get(reverse("main:get_projects_json"))
+
+        cover = json.loads(response.content)[0]["fields"]["cover_url"]
+        self.assertTrue(cover.endswith("img/projects/nusantara-defense.jpg"))
+        self.assertTrue(cover.startswith("/"))
+
+    def test_the_page_ships_the_frame_without_the_cards(self):
         response = self.client.get(reverse("main:show_projects"))
 
-        self.assertContains(response, self.project.title)
-        self.assertContains(response, self.project.description)
-        self.assertContains(response, "Roblox Game")
-        self.assertContains(response, self.project.cover_alt)
-        for tech in ["Roblox Studio", "Lua", "Blender"]:
-            self.assertContains(response, tech)
+        self.assertContains(response, 'id="grid"')
+        self.assertNotContains(response, self.project.description)
 
     def test_project_model(self):
         self.assertEqual(str(self.project), "Nusantara Defense")
@@ -108,11 +121,12 @@ class ProjectTest(TestCase):
 
         self.assertEqual(titles, ["SCERA", "Nusantara Defense"])
 
-    def test_empty_projects_page(self):
+    def test_empty_projects_endpoint(self):
         Project.objects.all().delete()
-        response = self.client.get(reverse("main:show_projects"))
 
-        self.assertContains(response, "Belum ada proyek yang ditambahkan.")
+        response = self.client.get(reverse("main:get_projects_json"))
+
+        self.assertEqual(json.loads(response.content), [])
 
     def test_main_page_links_to_projects_without_listing_them(self):
         response = self.client.get(reverse("main:show_main"))
@@ -215,22 +229,17 @@ class ProjectWriteTest(TestCase):
         self.assertContains(response, "<django-objects")
         self.assertContains(response, self.project.title)
 
-    def test_search_on_the_projects_page(self):
-        response = self.client.get(reverse("main:show_projects"), {"title": "zzzz"})
+    def test_search_that_matches_nothing(self):
+        response = self.client.get(reverse("main:get_projects_json"), {"title": "zzzz"})
 
-        self.assertContains(response, "Tidak ada proyek dengan nama tersebut.")
-        self.assertNotContains(response, self.project.description)
+        self.assertEqual(json.loads(response.content), [])
 
-    def test_delete_link_survives_the_json_round_trip(self):
-        # show_projects hands the template objects rebuilt from JSON rather than
-        # rows from the database. The primary key has to come back with them or
-        # every delete button on the page points nowhere.
-        response = self.client.get(reverse("main:show_projects"))
+    def test_the_endpoint_carries_the_key_every_action_url_needs(self):
+        # The delete, edit and star buttons are built in the browser from this
+        # key. Without it every one of them would point at nothing.
+        response = self.client.get(reverse("main:get_projects_json"))
 
-        self.assertContains(
-            response,
-            reverse("main:delete_project", args=[self.project.id]),
-        )
+        self.assertEqual(json.loads(response.content)[0]["pk"], str(self.project.id))
 
     def test_delete_project_with_the_right_code(self):
         response = self.client.post(
@@ -614,24 +623,38 @@ class StarTest(TestCase):
     def test_the_api_names_the_accounts_rather_than_their_ids(self):
         self.project.starred_by.add(self.warga)
 
-        response = self.client.get(reverse("main:get_projects_json"))
+        body = json.loads(self.client.get(reverse("main:get_projects_json")).content)
 
-        body = json.loads(response.content)
-        self.assertEqual(body[0]["fields"]["starred_by"], [["warga"]])
+        fields = body[0]["fields"]
+        self.assertEqual(fields["starred_by_names"], "warga")
+        self.assertEqual(fields["star_count"], 1)
+        self.assertNotIn("starred_by", fields)
+
+    def test_the_api_answers_per_account(self):
+        self.project.starred_by.add(self.warga)
+
+        anonymous = json.loads(self.client.get(reverse("main:get_projects_json")).content)
+        self.client.force_login(self.warga)
+        signed_in = json.loads(self.client.get(reverse("main:get_projects_json")).content)
+
+        self.assertFalse(anonymous[0]["fields"]["is_starred"])
+        self.assertTrue(signed_in[0]["fields"]["is_starred"])
 
     def test_owner_controls_stay_out_of_the_page_for_everyone_else(self):
-        edit = reverse("main:update_project", args=[self.project.id])
-
+        # The buttons are assembled by the script from these two flags, so the
+        # flags are what the page has to get right.
         visitor = self.client.get(reverse("main:show_projects"))
-        self.assertNotContains(visitor, edit)
+        self.assertContains(visitor, 'const IS_OWNER = "false"')
 
         self.client.force_login(self.warga)
         registered = self.client.get(reverse("main:show_projects"))
-        self.assertNotContains(registered, edit)
+        self.assertContains(registered, 'const CAN_CHANGE = "false"')
+        self.assertContains(registered, 'const IS_OWNER = "false"')
 
         self.client.force_login(User.objects.create_superuser("pemilik", password="rahasia-uji"))
         owner = self.client.get(reverse("main:show_projects"))
-        self.assertContains(owner, edit)
+        self.assertContains(owner, 'const CAN_CHANGE = "true"')
+        self.assertContains(owner, 'const IS_OWNER = "true"')
 
 
 class EditorRoleTest(TestCase):

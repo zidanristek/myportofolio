@@ -7,8 +7,9 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core import serializers
 from django.core.exceptions import PermissionDenied
 from django.db.models import Max
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 
@@ -247,11 +248,33 @@ def _matching_projects(request):
 
 
 def get_projects_json(request):
-    # starred_by would otherwise leak database ids into a public endpoint.
-    payload = serializers.serialize(
-        "json", _matching_projects(request), use_natural_foreign_keys=True
-    )
-    return HttpResponse(payload, content_type="application/json")
+    # Assembled by hand rather than through serializers.serialize, because the
+    # page now builds its cards from this endpoint and a serializer knows
+    # nothing about who is asking. is_starred is per account, and the cover
+    # lives either in the static files or at a URL, which only the server can
+    # tell apart. starred_by is sent as names so no database id leaves here.
+    projects = _matching_projects(request).prefetch_related("starred_by")
+
+    data = []
+    for project in projects:
+        starred_by = list(project.starred_by.all())
+        data.append({
+            "pk": str(project.id),
+            "fields": {
+                "title": project.title,
+                "description": project.description,
+                "category": project.get_category_display(),
+                "cover_url": static(project.cover) if project.cover else project.project_image_url,
+                "cover_alt": project.cover_alt or "Sampul %s" % project.title,
+                "tech_list": project.tech_list,
+                "project_url": project.project_url,
+                "star_count": len(starred_by),
+                "is_starred": request.user in starred_by,
+                "starred_by_names": ", ".join(user.username for user in starred_by),
+            },
+        })
+
+    return JsonResponse(data, safe=False)
 
 
 def get_projects_xml(request):
@@ -262,19 +285,10 @@ def get_projects_xml(request):
 
 
 def show_projects(request):
-    # The page reads its own JSON endpoint rather than the queryset. Going out
-    # and back looks like a detour on one server, and it is, but it is the shape
-    # the page keeps once the list is fetched by JavaScript or by a separate
-    # client, and it proves the endpoint returns what the page needs.
-    response = get_projects_json(request)
-    projects = [
-        item.object
-        for item in serializers.deserialize("json", response.content.decode("utf-8"))
-    ]
-
+    # Only the frame of the page is rendered here. The cards are fetched from
+    # the JSON endpoint by the browser, so searching no longer costs a reload.
     context = {
         "name": OWNER,
-        "project_list": projects,
         "title_query": request.GET.get("title", "").strip(),
     }
     return render(request, "projects.html", context)
