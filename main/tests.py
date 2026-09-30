@@ -314,6 +314,32 @@ class ProjectAjaxCreateTest(TestCase):
         self.assertIn("title", json.loads(response.content)["errors"])
         self.assertFalse(Project.objects.filter(title__contains="Pacilator").exists())
 
+    def test_a_title_made_only_of_a_tag_is_refused(self):
+        self.client.force_login(self.owner)
+        payload = dict(self.payload, title='<img src="x" onerror="alert(1)">')
+
+        response = self.client.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+        self.assertEqual(Project.objects.count(), 1)
+
+    def test_tags_are_stripped_from_the_text_that_is_kept(self):
+        self.client.force_login(self.owner)
+        payload = dict(
+            self.payload,
+            title="Pacilator <b>v2</b>",
+            description="Menerjemahkan <script>alert(1)</script>dokumen.",
+            tech_stack="Python, <i>PyQt5</i>",
+        )
+
+        self.client.post(self.url, payload)
+
+        project = Project.objects.get(title__startswith="Pacilator")
+        self.assertEqual(project.title, "Pacilator v2")
+        self.assertEqual(project.description, "Menerjemahkan alert(1)dokumen.")
+        self.assertEqual(project.tech_stack, "Python, PyQt5")
+
     def test_a_visitor_is_refused_in_json_rather_than_redirected(self):
         # A redirect would be followed by fetch, which would then be handed a
         # login page with status 200 and no way to tell that it failed.
