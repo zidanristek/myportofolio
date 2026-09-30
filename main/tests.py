@@ -266,6 +266,95 @@ class ProjectWriteTest(TestCase):
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
 
 
+class ProjectAjaxCreateTest(TestCase):
+    """The endpoint the modal posts to, which answers in JSON rather than
+    redirecting, so the page can stay where it is."""
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.url = reverse("main:create_project_ajax")
+        self.payload = {
+            "title": "Pacilator",
+            "description": "Menerjemahkan dokumen dan takarir.",
+            "category": "tool",
+            "tech_stack": "Python, PyQt5",
+            "project_url": "",
+            "project_image_url": "",
+        }
+
+    def test_the_owner_creates_and_gets_the_new_key_back(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 201)
+        project = Project.objects.get(title="Pacilator")
+        self.assertEqual(json.loads(response.content)["pk"], str(project.id))
+
+    def test_a_new_project_still_lands_at_the_end(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, self.payload)
+
+        self.assertEqual(Project.objects.get(title="Pacilator").position, 2)
+
+    def test_invalid_input_is_refused_with_the_field_errors(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url, dict(self.payload, title="   "))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+        self.assertFalse(Project.objects.filter(title__contains="Pacilator").exists())
+
+    def test_a_visitor_is_refused_in_json_rather_than_redirected(self):
+        # A redirect would be followed by fetch, which would then be handed a
+        # login page with status 200 and no way to tell that it failed.
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertFalse(Project.objects.filter(title="Pacilator").exists())
+
+    def test_a_registered_account_is_refused(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Project.objects.filter(title="Pacilator").exists())
+
+    def test_an_editor_is_refused_too(self):
+        editor = User.objects.create_user("editor", password="rahasia-uji")
+        editor.groups.add(Group.objects.get(name="Editor"))
+        self.client.force_login(editor)
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.owner)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_the_modal_reaches_the_owner_alone(self):
+        visitor = self.client.get(reverse("main:show_projects"))
+        self.assertNotContains(visitor, 'id="project-form"')
+
+        self.client.force_login(self.owner)
+        owner = self.client.get(reverse("main:show_projects"))
+        self.assertContains(owner, 'id="project-form"')
+        self.assertContains(owner, 'popovertarget="add-project-modal"')
+
+
 class ExperienceWriteTest(TestCase):
     """Create, update, delete, and the two experience data endpoints."""
 
