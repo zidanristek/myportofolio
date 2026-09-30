@@ -1732,3 +1732,62 @@ body.menu-open {
         padding: 1.15rem;
     }
 }
+
+/* Toast: a notice that slides in at the bottom right and leaves on its own. */
+
+.toast {
+    position: fixed;
+    inset: auto 2rem 2rem auto;
+    margin: 0;
+    padding: 0.9rem 1.2rem;
+    max-width: min(24rem, calc(100vw - 4rem));
+    display: none;
+    border: 1px solid rgba(143, 199, 239, 0.28);
+    border-radius: var(--radius-card);
+    background: var(--gradient-card-blue), var(--navy-900);
+    box-shadow: var(--shadow-card);
+    color: var(--n-100);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast:popover-open {
+    display: block;
+}
+
+.toast-hidden {
+    opacity: 0;
+    transform: translateY(150%);
+    pointer-events: none;
+}
+
+.toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-title {
+    margin-bottom: 0.15rem;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.toast-message {
+    font-size: 0.85rem;
+    color: var(--n-300);
+}
+
+/* The left edge carries the outcome, matching the flash messages above. */
+
+.toast-success { border-left: 4px solid var(--green-400); }
+.toast-error { border-left: 4px solid #e06a5c; }
+.toast-normal { border-left: 4px solid var(--blue-500); }
+
+@media (max-width: 600px) {
+    .toast {
+        inset: auto 1rem 1rem 1rem;
+        /* The popover user agent style is width: fit-content, so the left and
+           right offsets alone leave the box hugging its text. */
+        width: auto;
+        max-width: none;
+    }
+}
