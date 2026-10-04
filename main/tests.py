@@ -401,6 +401,52 @@ class ExperienceSearchTest(TestCase):
                          ["Project Officer URBAN 2026"])
 
 
+class ExperienceCategoryFilterTest(TestCase):
+    """The toolbar button that narrows the carousel to one kind of entry."""
+
+    def setUp(self):
+        Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        Experience.objects.create(
+            title="Project Officer URBAN 2026",
+            description="Memimpin kepanitiaan acara.",
+            category="volunteer",
+            position=2,
+        )
+
+    def test_the_page_offers_every_category(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, 'popovertarget="category-filter"')
+        for value, label in Experience.EXPERIENCE_CHOICES:
+            self.assertContains(response, 'data-category="%s"' % value)
+            self.assertContains(response, label)
+
+    def test_the_endpoint_narrows_to_one_category(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"), {"category": "volunteer"}
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body],
+                         ["Project Officer URBAN 2026"])
+
+    def test_a_keyword_and_a_category_narrow_together(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"),
+                {"title": "asisten", "category": "volunteer"},
+            ).content
+        )
+
+        self.assertEqual(body, [])
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.

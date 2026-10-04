@@ -1806,3 +1806,18 @@ body.menu-open {
         max-width: none;
     }
 }
+
+/* The category choices inside the filter dialog. They wrap rather than scroll,
+   because six short labels fit two rows even on a phone. */
+
+.filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filter-list .is-active {
+    border-color: var(--blue-500);
+    color: var(--n-100);
+    background: rgba(143, 199, 239, 0.18);
+}

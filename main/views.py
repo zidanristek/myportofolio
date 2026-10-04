@@ -196,6 +196,7 @@ def show_experience(request):
     context = {
         "name": OWNER,
         "title_query": request.GET.get("title", "").strip(),
+        "categories": Experience.EXPERIENCE_CHOICES,
     }
     return render(request, "experience.html", context)
 
