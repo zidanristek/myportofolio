@@ -1825,6 +1825,35 @@ body.menu-open {
     background: rgba(255, 255, 255, 0.16);
 }
 
+/* How many categories are on, shown on the button itself. Without it a page
+   showing everything looks the same whether nothing is picked or all six are. */
+
+.filter-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--blue-500);
+    color: var(--navy-950);
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+
+.btn-neutral.is-filtering {
+    border-color: var(--blue-500);
+    color: var(--n-100);
+}
+
+.project-toolbar .btn-icon {
+    position: relative;
+    overflow: visible;
+}
+
 /* The category panel. Its top and left are written by the script, because a
    popover lives in the top layer and has no box to position against. */
 

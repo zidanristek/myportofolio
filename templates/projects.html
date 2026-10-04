@@ -27,6 +27,7 @@
                 </form>
                 <button type="button" class="btn btn-neutral btn-icon"
                         popovertarget="category-filter" aria-label="Kategori">
+                    <span id="category-count" class="filter-count hide" aria-hidden="true"></span>
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
                          stroke="currentColor" stroke-width="2" stroke-linecap="round"
                          aria-hidden="true" focusable="false">
@@ -244,7 +245,8 @@
     // A popover sits in the top layer, outside the page flow, so it cannot be
     // positioned by CSS alone against a button further down the document.
     // Anchor positioning would do it, but it is not in Firefox yet.
-    const filterButton = document.querySelector('[popovertarget="category-filter"]');
+    const filterButton = document.querySelector('.project-toolbar [popovertarget="category-filter"]');
+    const categoryCount = document.getElementById("category-count");
 
     categoryFilter.addEventListener("beforetoggle", function (event) {
         if (event.newState !== "open") return;
@@ -271,8 +273,29 @@
         }
         choice.classList.toggle("is-active", on);
         choice.setAttribute("aria-pressed", String(on));
+        markFilter();
         search();
     });
+
+    // Picking every category and picking none both show the whole list, so the
+    // closed button is the only place the difference is visible. It carries the
+    // number that is on, and nothing when the list is not narrowed at all.
+    function markFilter() {
+        const count = activeCategories.size;
+        filterButton.classList.toggle("is-filtering", count > 0);
+        categoryCount.textContent = count;
+        categoryCount.classList.toggle("hide", count === 0);
+        filterButton.setAttribute(
+            "aria-label",
+            count ? `Kategori, ${count} dipilih` : "Kategori"
+        );
+    }
+
+    // The panel is placed once, against where the button was at the time, so a
+    // page that scrolls underneath would leave it hanging in mid-air.
+    addEventListener("scroll", function () {
+        if (categoryFilter.matches(":popover-open")) categoryFilter.hidePopover();
+    }, { passive: true });
 
     // Each keystroke cancels the previous timer, so the request only leaves
     // once the typing stops.
