@@ -1,5 +1,0 @@
-env/
-staticfiles/
-db.sqlite3
-.env
-.env.prod

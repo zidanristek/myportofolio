@@ -39,11 +39,24 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
-        self.assertContains(response, self.experience.title)
-        self.assertContains(response, self.experience.description)
-        self.assertContains(response, "Part-Time")
-        self.assertContains(response, "Sedang berlangsung")
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
+
+    def test_the_page_ships_the_frame_without_the_cards(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertNotContains(response, self.experience.title)
+        self.assertContains(response, 'id="experience-track"')
+        self.assertContains(response, 'id="loading"')
+
+    def test_the_card_contents_come_from_the_endpoint(self):
+        fields = json.loads(
+            self.client.get(reverse("main:get_experiences_json")).content
+        )[0]["fields"]
+
+        self.assertEqual(fields["title"], self.experience.title)
+        self.assertEqual(fields["description"], self.experience.description)
+        self.assertEqual(fields["category"], "Part-Time")
+        self.assertTrue(fields["is_ongoing"])
 
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
@@ -54,11 +67,13 @@ class MainTest(TestCase):
     def test_completed_experience(self):
         self.experience.ended_at = timezone.now()
         self.experience.save()
-        response = self.client.get(reverse("main:show_experience"))
+
+        fields = json.loads(
+            self.client.get(reverse("main:get_experiences_json")).content
+        )[0]["fields"]
 
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, "Selesai")
-        self.assertNotContains(response, "Sedang berlangsung")
+        self.assertFalse(fields["is_ongoing"])
 
 
 class ProjectTest(TestCase):
@@ -264,6 +279,533 @@ class ProjectWriteTest(TestCase):
         self.client.get(reverse("main:delete_project", args=[self.project.id]))
 
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
+
+
+class ExperienceApiTest(TestCase):
+    """The endpoint the experience page is about to build its cards from."""
+
+    def setUp(self):
+        self.magang = Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            thumbnail="img/experience/riset.jpg",
+            position=1,
+        )
+        self.lepas = Experience.objects.create(
+            title="Desainer Lepas",
+            description="Mengerjakan identitas visual.",
+            category="freelance",
+            thumbnail="https://contoh.test/desain.jpg",
+            position=2,
+        )
+        self.url = reverse("main:get_experiences_json")
+
+    def _fields(self, response):
+        return [row["fields"] for row in json.loads(response.content)]
+
+    def test_the_payload_carries_what_a_card_needs(self):
+        fields = self._fields(self.client.get(self.url))[0]
+
+        self.assertEqual(fields["title"], "Asisten Riset")
+        self.assertEqual(fields["category"], "Research")
+        self.assertEqual(fields["category_value"], "research")
+        self.assertTrue(fields["is_ongoing"])
+        self.assertEqual(fields["star_count"], 0)
+        self.assertFalse(fields["is_starred"])
+
+    def test_a_static_thumbnail_is_sent_as_a_url(self):
+        # The stored value is a path inside static, which only the server can
+        # turn into something the browser can ask for.
+        fields = self._fields(self.client.get(self.url))[0]
+
+        self.assertEqual(fields["thumbnail_url"], "/static/img/experience/riset.jpg")
+
+    def test_a_full_url_thumbnail_is_left_alone(self):
+        fields = self._fields(self.client.get(self.url))[1]
+
+        self.assertEqual(fields["thumbnail_url"], "https://contoh.test/desain.jpg")
+
+    def test_the_title_narrows_the_list(self):
+        fields = self._fields(self.client.get(self.url, {"title": "riset"}))
+
+        self.assertEqual([field["title"] for field in fields], ["Asisten Riset"])
+
+    def test_the_category_narrows_the_list(self):
+        fields = self._fields(self.client.get(self.url, {"category": "freelance"}))
+
+        self.assertEqual([field["title"] for field in fields], ["Desainer Lepas"])
+
+    def test_a_category_nobody_offers_is_ignored(self):
+        fields = self._fields(self.client.get(self.url, {"category": "<script>"}))
+
+        self.assertEqual(len(fields), 2)
+
+    def test_the_two_filters_narrow_together(self):
+        fields = self._fields(
+            self.client.get(self.url, {"title": "desainer", "category": "research"})
+        )
+
+        self.assertEqual(fields, [])
+
+    def test_the_star_state_answers_per_account(self):
+        warga = User.objects.create_user("warga", password="rahasia-uji")
+        self.magang.starred_by.add(warga)
+
+        anonim = self._fields(self.client.get(self.url))[0]
+        self.assertEqual(anonim["star_count"], 1)
+        self.assertFalse(anonim["is_starred"])
+
+        self.client.force_login(warga)
+        masuk = self._fields(self.client.get(self.url))[0]
+        self.assertTrue(masuk["is_starred"])
+
+
+class ExperienceSearchTest(TestCase):
+    """Searching happens in the browser now, so what the page has to get right
+    is the delay and the form that no longer submits itself."""
+
+    def setUp(self):
+        Experience.objects.create(
+            title="Project Officer URBAN 2026",
+            description="Memimpin kepanitiaan acara.",
+            category="volunteer",
+            position=1,
+        )
+        Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=2,
+        )
+
+    def test_the_page_waits_before_asking(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, "const SEARCH_DELAY = 300")
+
+    def test_the_search_form_does_not_reload_the_page(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, 'id="experience-search-form"')
+        self.assertNotContains(response, 'form method="get"')
+
+    def test_a_keyword_narrows_the_endpoint(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"), {"title": "urban"}
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body],
+                         ["Project Officer URBAN 2026"])
+
+
+class ExperienceCategoryFilterTest(TestCase):
+    """The toolbar button that narrows the carousel to one kind of entry."""
+
+    def setUp(self):
+        Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        Experience.objects.create(
+            title="Project Officer URBAN 2026",
+            description="Memimpin kepanitiaan acara.",
+            category="volunteer",
+            position=2,
+        )
+
+    def test_the_page_offers_every_category(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, 'popovertarget="category-filter"')
+        for value, label in Experience.EXPERIENCE_CHOICES:
+            self.assertContains(response, 'data-category="%s"' % value)
+            self.assertContains(response, label)
+
+    def test_several_categories_narrow_to_their_union(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"),
+                {"category": ["research", "volunteer"]},
+            ).content
+        )
+
+        self.assertEqual(
+            sorted(row["fields"]["title"] for row in body),
+            ["Asisten Riset", "Project Officer URBAN 2026"],
+        )
+
+    def test_an_unknown_category_is_dropped_from_the_set(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"),
+                {"category": ["research", "<script>"]},
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body], ["Asisten Riset"])
+
+    def test_the_endpoint_narrows_to_one_category(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"), {"category": "volunteer"}
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body],
+                         ["Project Officer URBAN 2026"])
+
+    def test_a_keyword_and_a_category_narrow_together(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"),
+                {"title": "asisten", "category": "volunteer"},
+            ).content
+        )
+
+        self.assertEqual(body, [])
+
+
+class ProjectCategoryFilterTest(TestCase):
+    """The same toolbar button as the experience page, on the archive."""
+
+    def setUp(self):
+        Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        Project.objects.create(
+            title="Pacilator",
+            description="Menerjemahkan dokumen dan takarir.",
+            category="tool",
+            tech_stack="Python, PyQt5",
+            position=2,
+        )
+
+    def test_the_page_offers_every_category(self):
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertContains(response, 'popovertarget="category-filter"')
+        for value, label in Project.CATEGORY_CHOICES:
+            self.assertContains(response, 'data-category="%s"' % value)
+
+    def test_the_endpoint_narrows_to_one_category(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"), {"category": "tool"}
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body], ["Pacilator"])
+
+    def test_a_category_nobody_offers_is_ignored(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"), {"category": "<script>"}
+            ).content
+        )
+
+        self.assertEqual(len(body), 2)
+
+    def test_several_categories_narrow_to_their_union(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"), {"category": ["game", "tool"]}
+            ).content
+        )
+
+        self.assertEqual(len(body), 2)
+
+    def test_a_keyword_and_a_category_narrow_together(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"),
+                {"title": "nusantara", "category": "tool"},
+            ).content
+        )
+
+        self.assertEqual(body, [])
+
+
+class ExperienceAjaxCreateTest(TestCase):
+    """The endpoint the experience modal posts to, which answers in JSON rather
+    than redirecting, so the carousel can stay where it is."""
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        self.url = reverse("main:create_experience_ajax")
+        self.payload = {
+            "title": "Panitia COMPFEST",
+            "description": "Mengurus kebutuhan peserta lomba.",
+            "category": "volunteer",
+            "thumbnail": "",
+            "position": 2,
+            "is_finished": "",
+        }
+
+    def test_the_owner_creates_and_gets_the_new_key_back(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 201)
+        experience = Experience.objects.get(title="Panitia COMPFEST")
+        self.assertEqual(json.loads(response.content)["pk"], str(experience.id))
+
+    def test_an_unfinished_entry_keeps_an_open_end_date(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, self.payload)
+
+        self.assertTrue(Experience.objects.get(title="Panitia COMPFEST").is_ongoing)
+
+    def test_the_finished_checkbox_closes_the_entry(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, dict(self.payload, is_finished="on"))
+
+        self.assertFalse(Experience.objects.get(title="Panitia COMPFEST").is_ongoing)
+
+    def test_invalid_input_is_refused_with_the_field_errors(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url, dict(self.payload, title=""))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+        self.assertFalse(Experience.objects.filter(category="volunteer").exists())
+
+    def test_a_visitor_is_refused_in_json_rather_than_redirected(self):
+        # A redirect would be followed by fetch, which would then be handed a
+        # login page with status 200 and no way to tell that it failed.
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertFalse(Experience.objects.filter(title="Panitia COMPFEST").exists())
+
+    def test_a_registered_account_is_refused(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Experience.objects.filter(title="Panitia COMPFEST").exists())
+
+    def test_an_editor_is_refused_too(self):
+        editor = User.objects.create_user("editor", password="rahasia-uji")
+        editor.groups.add(Group.objects.get(name="Editor"))
+        self.client.force_login(editor)
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.owner)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_a_title_made_of_tags_is_refused(self):
+        self.client.force_login(self.owner)
+        hostile = '<img src="x" onerror="alert(1)">'
+
+        response = self.client.post(self.url, dict(self.payload, title=hostile))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+
+    def test_tags_are_stripped_out_of_the_text(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, dict(
+            self.payload,
+            title='<b>Panitia</b> COMPFEST',
+            description='<script>alert(1)</script>Mengurus peserta.',
+        ))
+
+        experience = Experience.objects.get(title="Panitia COMPFEST")
+        self.assertEqual(experience.description, "alert(1)Mengurus peserta.")
+        self.assertNotIn("<", experience.description)
+
+    def test_the_modal_reaches_the_owner_alone(self):
+        visitor = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(visitor, 'id="experience-form"')
+
+        self.client.force_login(self.owner)
+        owner = self.client.get(reverse("main:show_experience"))
+        self.assertContains(owner, 'id="experience-form"')
+        self.assertContains(owner, 'popovertarget="add-experience-modal"')
+
+
+class StarApiTest(TestCase):
+    """Starring answers in JSON when the script asks, and still redirects a
+    plain form submit so the pages work without JavaScript."""
+
+    def setUp(self):
+        self.warga = User.objects.create_user("warga", password="rahasia-uji")
+        self.experience = Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        self.project = Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.url = reverse("main:toggle_star_experience", args=[self.experience.id])
+
+    def _ajax(self, url):
+        return self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+    def test_the_new_count_comes_straight_back(self):
+        self.client.force_login(self.warga)
+
+        body = json.loads(self._ajax(self.url).content)
+
+        self.assertEqual(body["star_count"], 1)
+        self.assertTrue(body["is_starred"])
+        self.assertEqual(body["starred_by_names"], "warga")
+
+    def test_the_same_click_takes_the_star_away(self):
+        self.client.force_login(self.warga)
+        self._ajax(self.url)
+
+        body = json.loads(self._ajax(self.url).content)
+
+        self.assertEqual(body["star_count"], 0)
+        self.assertFalse(body["is_starred"])
+
+    def test_a_project_star_answers_the_same_way(self):
+        self.client.force_login(self.warga)
+
+        body = json.loads(
+            self._ajax(reverse("main:toggle_star", args=[self.project.id])).content
+        )
+
+        self.assertEqual(body["star_count"], 1)
+        self.assertTrue(body["is_starred"])
+
+    def test_both_pages_star_through_the_script(self):
+        dummy = "00000000-0000-0000-0000-000000000000"
+
+        for page, toggle in (("main:show_experience", "main:toggle_star_experience"),
+                             ("main:show_projects", "main:toggle_star")):
+            response = self.client.get(reverse(page))
+            self.assertContains(response, reverse(toggle, args=[dummy]))
+            self.assertContains(response, "X-Requested-With")
+
+    def test_a_plain_submit_still_redirects(self):
+        self.client.force_login(self.warga)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertEqual(self.experience.starred_by.count(), 1)
+
+    def test_a_visitor_is_sent_to_the_login_page(self):
+        response = self._ajax(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+
+class DeleteApiTest(TestCase):
+    """Deleting answers in JSON when the script asks, and still redirects a
+    plain form submit."""
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        self.experience = Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        self.project = Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.url = reverse("main:delete_experience", args=[self.experience.id])
+
+    def _ajax(self, url):
+        return self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+    def test_the_owner_gets_the_deleted_key_back(self):
+        self.client.force_login(self.owner)
+
+        response = self._ajax(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)["pk"], str(self.experience.id))
+        self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_a_project_is_deleted_the_same_way(self):
+        self.client.force_login(self.owner)
+
+        self._ajax(reverse("main:delete_project", args=[self.project.id]))
+
+        self.assertFalse(Project.objects.filter(pk=self.project.id).exists())
+
+    def test_a_plain_submit_still_redirects(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_a_registered_account_cannot_delete(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
+
+        response = self._ajax(self.url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_get_does_not_delete(self):
+        self.client.force_login(self.owner)
+
+        self.client.get(self.url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+
+class SharedScriptTest(TestCase):
+    """escapeHtml used to live inside the script on the projects page. A second
+    page now builds cards the same way, so it moved to a file every page loads.
+    """
+
+    def test_every_page_loads_the_shared_helper(self):
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "js/dom.js")
+
+    def test_the_projects_page_no_longer_carries_its_own_copy(self):
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertNotContains(response, "function escapeHtml")
+        self.assertContains(response, "escapeHtml(")
 
 
 class ProjectAjaxCreateTest(TestCase):
@@ -505,15 +1047,14 @@ class ExperienceWriteTest(TestCase):
         self.assertContains(response, "<django-objects")
         self.assertContains(response, self.experience.title)
 
-    def test_edit_link_survives_the_json_round_trip(self):
+    def test_the_page_carries_the_templates_the_script_fills_in(self):
+        # The real keys only arrive as JSON, so the page ships one url per
+        # action built around a dummy key for the script to substitute into.
         response = self.client.get(reverse("main:show_experience"))
 
-        self.assertContains(
-            response, reverse("main:update_experience", args=[self.experience.id])
-        )
-        self.assertContains(
-            response, reverse("main:delete_experience", args=[self.experience.id])
-        )
+        dummy = "00000000-0000-0000-0000-000000000000"
+        self.assertContains(response, reverse("main:update_experience", args=[dummy]))
+        self.assertContains(response, reverse("main:delete_experience", args=[dummy]))
 
     def test_delete_experience(self):
         response = self.client.post(
@@ -870,25 +1411,26 @@ class EditorRoleTest(TestCase):
         self.assertEqual(self.client.get(edit).status_code, 403)
 
     def test_the_page_offers_each_role_only_what_it_may_use(self):
-        edit = reverse("main:update_experience", args=[self.experience.id])
-        delete = reverse("main:delete_experience", args=[self.experience.id])
-        add = reverse("main:create_experience")
+        add = 'popovertarget="add-experience-modal"'
 
+        # The buttons are assembled by the script from these two flags, so the
+        # flags are what the page has to get right.
         self.client.force_login(self.regular)
         regular = self.client.get(reverse("main:show_experience"))
-        self.assertNotContains(regular, edit)
+        self.assertContains(regular, 'const CAN_CHANGE = "false"')
+        self.assertContains(regular, 'const IS_OWNER = "false"')
         self.assertNotContains(regular, add)
 
         self.client.force_login(self.editor)
         editor = self.client.get(reverse("main:show_experience"))
-        self.assertContains(editor, edit)
-        self.assertNotContains(editor, delete)
+        self.assertContains(editor, 'const CAN_CHANGE = "true"')
+        self.assertContains(editor, 'const IS_OWNER = "false"')
         self.assertNotContains(editor, add)
 
         self.client.force_login(self.owner)
         owner = self.client.get(reverse("main:show_experience"))
-        self.assertContains(owner, edit)
-        self.assertContains(owner, delete)
+        self.assertContains(owner, 'const CAN_CHANGE = "true"')
+        self.assertContains(owner, 'const IS_OWNER = "true"')
         self.assertContains(owner, add)
 
 
@@ -947,4 +1489,6 @@ class ExperienceStarTest(TestCase):
 
         body = json.loads(self.client.get(reverse("main:get_experiences_json")).content)
 
-        self.assertEqual(body[0]["fields"]["starred_by"], [["warga"]])
+        fields = body[0]["fields"]
+        self.assertEqual(fields["starred_by_names"], "warga")
+        self.assertNotIn("starred_by", fields)

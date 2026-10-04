@@ -33,17 +33,10 @@ DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# Deployment hosts come from the environment so this file is identical on a
-# laptop and on a server. PWS_HOST is set by hand, Vercel fills in its own.
-DEPLOYMENT_HOSTS = [
-    host
-    for host in (
-        os.getenv('PWS_HOST'),
-        os.getenv('VERCEL_PROJECT_PRODUCTION_URL'),
-        os.getenv('VERCEL_URL'),
-    )
-    if host
-]
+# The deployment host comes from the environment so this file is identical on a
+# laptop and on a server. PWS is the only place this is deployed, and PWS_HOST
+# is set by hand in its Environs tab.
+DEPLOYMENT_HOSTS = [host for host in (os.getenv('PWS_HOST'),) if host]
 
 ALLOWED_HOSTS += DEPLOYMENT_HOSTS
 CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in DEPLOYMENT_HOSTS]

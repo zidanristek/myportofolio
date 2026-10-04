@@ -120,36 +120,93 @@ def _toggle(request, instance):
         instance.starred_by.add(request.user)
 
 
+def _asked_for_json(request):
+    """Whether the caller is the page script rather than a plain form submit."""
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _star_answer(request, instance, fallback):
+    """JSON for the script, a redirect for a plain form submit.
+
+    Both pages star through fetch now, but the redirect is what a browser with
+    no JavaScript still needs, and it costs one branch to keep.
+    """
+    if _asked_for_json(request):
+        starred_by = list(instance.starred_by.all())
+        return JsonResponse({
+            "star_count": len(starred_by),
+            "is_starred": request.user in starred_by,
+            "starred_by_names": ", ".join(user.username for user in starred_by),
+        })
+
+    return redirect(fallback)
+
+
 @login_required(login_url="/login/")
 def toggle_star(request, project_id):
     """Any signed-in account may star. Changing the entry itself needs more."""
-    _toggle(request, get_object_or_404(Project, pk=project_id))
-    return redirect("main:show_projects")
+    project = get_object_or_404(Project, pk=project_id)
+    _toggle(request, project)
+    return _star_answer(request, project, "main:show_projects")
 
 
 @login_required(login_url="/login/")
 def toggle_star_experience(request, experience_id):
-    _toggle(request, get_object_or_404(Experience, pk=experience_id))
-    return redirect("main:show_experience")
+    experience = get_object_or_404(Experience, pk=experience_id)
+    _toggle(request, experience)
+    return _star_answer(request, experience, "main:show_experience")
 
 
 def _matching_experiences(request):
-    """Every experience, narrowed by the title in the query string if there is one."""
+    """Every experience, narrowed by the title and categories in the query.
+
+    category may appear more than once, because the toolbar lets several be
+    picked at a time. Unknown values are dropped rather than refused: they
+    arrive from a query string anyone can type, and an empty carousel is a
+    worse answer to a typo than simply showing everything.
+    """
     experiences = Experience.objects.all()
     title_query = request.GET.get("title", "").strip()
+    known = dict(Experience.EXPERIENCE_CHOICES)
+    categories = [value for value in request.GET.getlist("category") if value in known]
 
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
+
+    if categories:
+        experiences = experiences.filter(category__in=categories)
 
     return experiences
 
 
 def get_experiences_json(request):
-    # starred_by would otherwise leak database ids into a public endpoint.
-    payload = serializers.serialize(
-        "json", _matching_experiences(request), use_natural_foreign_keys=True
-    )
-    return HttpResponse(payload, content_type="application/json")
+    # Assembled by hand rather than through serializers.serialize, for the same
+    # reasons as the projects endpoint below: a serializer knows nothing about
+    # who is asking, so is_starred cannot come out of it, and thumbnail holds
+    # either a path under static or a full URL, which only the server can tell
+    # apart. starred_by is sent as names so no database id leaves here.
+    experiences = _matching_experiences(request).prefetch_related("starred_by")
+
+    data = []
+    for experience in experiences:
+        starred_by = list(experience.starred_by.all())
+        thumbnail = experience.thumbnail or ""
+        data.append({
+            "pk": str(experience.id),
+            "fields": {
+                "title": experience.title,
+                "description": experience.description,
+                "category": experience.get_category_display(),
+                "category_value": experience.category,
+                "thumbnail_url": static(thumbnail) if thumbnail and not thumbnail.startswith("http") else thumbnail,
+                "is_ongoing": experience.is_ongoing,
+                "star_count": len(starred_by),
+                "is_starred": request.user in starred_by,
+                "starred_by_names": ", ".join(user.username for user in starred_by),
+            },
+        })
+
+    return JsonResponse(data, safe=False)
 
 
 def get_experiences_xml(request):
@@ -160,18 +217,16 @@ def get_experiences_xml(request):
 
 
 def show_experience(request):
-    # Same round trip as the projects page: the template is handed objects
-    # rebuilt from the JSON endpoint rather than rows straight off the queryset.
-    response = get_experiences_json(request)
-    experiences = [
-        item.object
-        for item in serializers.deserialize("json", response.content.decode("utf-8"))
-    ]
-
+    # Only the frame of the page is rendered here. The cards are fetched from
+    # the JSON endpoint by the browser, so searching no longer costs a reload.
     context = {
         "name": OWNER,
-        "experience_list": experiences,
         "title_query": request.GET.get("title", "").strip(),
+        "categories": Experience.EXPERIENCE_CHOICES,
+        # An unbound form, only so the modal has fields, labels and widgets to
+        # render. Nothing is saved through it; the browser posts to the
+        # endpoint above instead.
+        "form": ExperienceForm(),
     }
     return render(request, "experience.html", context)
 
@@ -188,6 +243,28 @@ def _save_experience(form):
 
     experience.save()
     return experience
+
+
+@require_POST
+def create_experience_ajax(request):
+    """The same rule as create_experience, answered in JSON.
+
+    login_required is deliberately absent, for the reason spelled out on
+    create_project_ajax: a redirect to the login page would be followed by
+    fetch and arrive as an HTML page with status 200.
+    """
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambah pengalaman."},
+            status=403,
+        )
+
+    form = ExperienceForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+    experience = _save_experience(form)
+    return JsonResponse({"pk": str(experience.id)}, status=201)
 
 
 @login_required(login_url="/login/")
@@ -240,17 +317,30 @@ def delete_experience(request, experience_id):
         return redirect("main:show_experience")
 
     experience.delete()
+
+    if _asked_for_json(request):
+        return JsonResponse({"pk": str(experience_id)})
+
     messages.success(request, "Pengalaman berhasil dihapus.")
     return redirect("main:show_experience")
 
 
 def _matching_projects(request):
-    """Every project, narrowed by the title in the query string if there is one."""
+    """Every project, narrowed by the title and categories in the query.
+
+    Several categories at a time, unknown ones dropped, for the same reasons
+    as the experience list above.
+    """
     projects = Project.objects.all()
     title_query = request.GET.get("title", "").strip()
+    known = dict(Project.CATEGORY_CHOICES)
+    categories = [value for value in request.GET.getlist("category") if value in known]
 
     if title_query:
         projects = projects.filter(title__icontains=title_query)
+
+    if categories:
+        projects = projects.filter(category__in=categories)
 
     return projects
 
@@ -298,6 +388,7 @@ def show_projects(request):
     context = {
         "name": OWNER,
         "title_query": request.GET.get("title", "").strip(),
+        "categories": Project.CATEGORY_CHOICES,
         # An unbound form, only so the modal has fields, labels and widgets to
         # render. Nothing is saved through it; the browser posts to the endpoint
         # below instead.
@@ -385,5 +476,9 @@ def delete_project(request, project_id):
         return redirect("main:show_projects")
 
     project.delete()
+
+    if _asked_for_json(request):
+        return JsonResponse({"pk": str(project_id)})
+
     messages.success(request, "Proyek berhasil dihapus.")
     return redirect("main:show_projects")

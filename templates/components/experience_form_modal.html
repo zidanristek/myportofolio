@@ -1,0 +1,35 @@
+{# The same popover pattern as the project form: the backdrop and the cancel
+   button both close it through popovertargetaction, so neither needs a
+   listener of its own. #}
+<div id="add-experience-modal" class="modal" popover="auto"
+     role="dialog" aria-modal="true" aria-labelledby="add-experience-title">
+    <button type="button" class="modal-backdrop"
+            popovertarget="add-experience-modal"
+            popovertargetaction="hide"
+            aria-label="Tutup form tambah pengalaman"></button>
+
+    <div class="card modal-box modal-box-wide">
+        <h2 id="add-experience-title">Tambah pengalaman</h2>
+
+        <form id="experience-form" method="post"
+              action="{% url 'main:create_experience_ajax' %}" class="project-form">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="form-help">{{ field.help_text }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-external"
+                        popovertarget="add-experience-modal"
+                        popovertargetaction="hide">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan pengalaman</button>
+            </div>
+        </form>
+    </div>
+</div>

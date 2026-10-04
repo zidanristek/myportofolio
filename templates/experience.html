@@ -10,8 +10,9 @@
             </header>
 
             <div class="shell project-toolbar">
-                <form method="get" action="{% url 'main:show_experience' %}" class="project-search">
-                    <input type="search" name="title" value="{{ title_query }}"
+                {# No method or action: the submit handler below takes both over. #}
+                <form id="experience-search-form" class="project-search">
+                    <input type="search" name="title" id="search-input" value="{{ title_query }}"
                            class="project-search-input"
                            placeholder="Cari nama pengalaman"
                            aria-label="Cari nama pengalaman">
@@ -24,62 +25,424 @@
                         </svg>
                     </button>
                 </form>
+                <button type="button" class="btn btn-neutral btn-icon"
+                        popovertarget="category-filter" aria-label="Kategori">
+                    <span id="category-count" class="filter-count hide" aria-hidden="true"></span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         aria-hidden="true" focusable="false">
+                        <line x1="8" y1="6" x2="20" y2="6"></line>
+                        <line x1="8" y1="12" x2="20" y2="12"></line>
+                        <line x1="8" y1="18" x2="20" y2="18"></line>
+                        <circle cx="4" cy="6" r="1.4" fill="currentColor" stroke="none"></circle>
+                        <circle cx="4" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+                        <circle cx="4" cy="18" r="1.4" fill="currentColor" stroke="none"></circle>
+                    </svg>
+                </button>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_experience' %}" class="btn btn-primary btn-sm">Tambah Pengalaman</a>
+                    <button type="button" class="btn btn-primary btn-sm"
+                            popovertarget="add-experience-modal">Tambah Pengalaman</button>
                 {% endif %}
             </div>
 
-            <div class="carousel">
+            <div class="shell">
+                <p id="loading" class="empty-state hide">Memuat pengalaman...</p>
+                <p id="error" class="empty-state hide">Gagal memuat pengalaman. Coba muat ulang halaman.</p>
+                <p id="empty" class="empty-state hide">Belum ada pengalaman yang ditambahkan.</p>
+            </div>
+
+            <div class="carousel hide">
                 <button class="carousel-arrow is-prev" type="button"
                         data-step="-1" aria-label="Previous experience"></button>
 
-                <div class="experience-grid" id="experience-track" tabindex="0">
-                    {% for experience in experience_list %}
-                        <article class="card experience-card">
-                            {% if experience.thumbnail %}
-                                <img class="experience-cover" src="{% static experience.thumbnail %}"
-                                     alt="" loading="lazy" width="1080" height="1350">
-                            {% endif %}
-                            <div class="experience-body">
-                                <span class="experience-category visually-hidden">
-                                    {{ experience.get_category_display }}
-                                </span>
-                                <h2>{{ experience.title }}</h2>
-                                <p class="experience-description">
-                                    {{ experience.description }}
-                                </p>
-
-                                {% if experience.is_ongoing %}
-                                    <p class="experience-status visually-hidden">Sedang berlangsung</p>
-                                {% else %}
-                                    <p class="experience-status visually-hidden">Selesai</p>
-                                {% endif %}
-
-                                <div class="project-actions">
-                                    {% include "components/experience_star.html" with experience=experience %}
-                                    {% if perms.main.change_experience %}
-                                        <a href="{% url 'main:update_experience' experience.id %}"
-                                           class="btn btn-secondary btn-sm">Ubah</a>
-                                    {% endif %}
-                                    {% if user.is_superuser %}
-                                        {% include "components/experience_delete_modal.html" with experience=experience %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </article>
-                    {% empty %}
-                        {% if title_query %}
-                            <p class="empty-state">Tidak ada pengalaman dengan nama tersebut.</p>
-                        {% else %}
-                            <p class="empty-state">
-                                Belum ada pengalaman yang ditambahkan.
-                            </p>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+                <div class="experience-grid" id="experience-track" tabindex="0"></div>
 
                 <button class="carousel-arrow is-next" type="button"
                         data-step="1" aria-label="Next experience"></button>
             </div>
         </section>
+
+    {% if user.is_superuser %}
+        {% include "components/experience_form_modal.html" %}
+    {% endif %}
+
+    {# A panel under its own button rather than a dialog over the page: it only
+       narrows the list, so dimming and blurring everything behind it made the
+       page look broken. popover="auto" still closes it on an outside click. #}
+    <div id="category-filter" class="card filter-popover" popover="auto"
+         aria-labelledby="category-filter-title">
+        <div class="modal-head">
+            <h2 id="category-filter-title">Kategori</h2>
+            <button type="button" class="btn btn-neutral btn-icon btn-close"
+                    popovertarget="category-filter" popovertargetaction="hide"
+                    aria-label="Tutup kategori">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     aria-hidden="true" focusable="false">
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="filter-list">
+            {% for value, label in categories %}
+                <button type="button" class="btn btn-secondary btn-sm"
+                        data-category="{{ value }}" aria-pressed="false">{{ label }}</button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/carousel.js' %}"></script>
+    <script>
+    const EXPERIENCES_ENDPOINT = "{% url 'main:get_experiences_json' %}";
+    const CAN_CHANGE = "{{ perms.main.change_experience|yesno:'true,false' }}" === "true";
+    const IS_OWNER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+
+    // Every url below is built from one dummy key, because the template tag
+    // needs a valid UUID at render time and the real ones only arrive as JSON.
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const CREATE_ENDPOINT = "{% url 'main:create_experience_ajax' %}";
+
+    const DUMMY_ID = "00000000-0000-0000-0000-000000000000";
+    const EDIT_URL = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
+    const DELETE_URL = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
+    const STAR_URL = "{% url 'main:toggle_star_experience' '00000000-0000-0000-0000-000000000000' %}";
+
+    const loadingState = document.getElementById("loading");
+    const errorState = document.getElementById("error");
+    const emptyState = document.getElementById("empty");
+    const track = document.getElementById("experience-track");
+    const carousel = document.querySelector(".carousel");
+    const searchForm = document.getElementById("experience-search-form");
+    const searchInput = document.getElementById("search-input");
+
+    const categoryFilter = document.getElementById("category-filter");
+    // Several categories at once, so this is a set rather than one value.
+    // Empty means no narrowing at all, which is the same as picking every one.
+    const activeCategories = new Set();
+
+    let experiencesRequest;
+
+    // Long enough that a word being typed does not turn into one request per
+    // letter, short enough that the list still feels like it answers at once.
+    const SEARCH_DELAY = 300;
+    let searchTimer;
+
+    function showOnly({ loading = false, error = false, empty = false, cards = false }) {
+        loadingState.classList.toggle("hide", !loading);
+        errorState.classList.toggle("hide", !error);
+        emptyState.classList.toggle("hide", !empty);
+        carousel.classList.toggle("hide", !cards);
+    }
+
+    const csrf = `<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">`;
+
+    function buildCard(item) {
+        const experience = item.fields;
+
+        const cover = experience.thumbnail_url
+            ? `<img class="experience-cover" src="${escapeHtml(experience.thumbnail_url)}"
+                    alt="" loading="lazy" width="1080" height="1350">`
+            : "";
+
+        const starTitle = experience.star_count
+            ? `Dibintangi oleh ${escapeHtml(experience.starred_by_names)}`
+            : "Jadilah yang pertama memberi star";
+        const star = `
+            <form method="post" action="${STAR_URL.replace(DUMMY_ID, item.pk)}" class="star-form">
+                ${csrf}
+                <button type="submit" class="btn btn-sm btn-star${experience.is_starred ? " is-starred" : ""}"
+                        title="${starTitle}">
+                    <span aria-hidden="true">&#9733;</span>
+                    ${experience.is_starred ? "Unstar" : "Star"}
+                    <span class="star-count">${experience.star_count}</span>
+                </button>
+            </form>`;
+
+        const edit = CAN_CHANGE
+            ? `<a href="${EDIT_URL.replace(DUMMY_ID, item.pk)}" class="btn btn-secondary btn-sm">Ubah</a>`
+            : "";
+
+        // The popover dialog the server used to render carried one id per card,
+        // and every clone in the loop carried a copy of it. Minting those ids
+        // in JavaScript is not worth it, so a card made here asks with confirm.
+        const remove = IS_OWNER
+            ? `<form method="post" action="${DELETE_URL.replace(DUMMY_ID, item.pk)}"
+                     class="delete-form" data-title="${escapeHtml(experience.title)}">
+                ${csrf}
+                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+            </form>`
+            : "";
+
+        const card = document.createElement("article");
+        card.className = "card experience-card";
+        card.innerHTML = `
+            ${cover}
+            <div class="experience-body">
+                <span class="experience-category visually-hidden">${escapeHtml(experience.category)}</span>
+                <h2>${escapeHtml(experience.title)}</h2>
+                <p class="experience-description">${escapeHtml(experience.description)}</p>
+                <p class="experience-status visually-hidden">${experience.is_ongoing ? "Sedang berlangsung" : "Selesai"}</p>
+                <div class="project-actions">
+                    ${star}
+                    ${edit}
+                    ${remove}
+                </div>
+            </div>`;
+        return card;
+    }
+
+    async function fetchExperiences(query = "", categories = []) {
+        // A slow first request must not land on top of a later, narrower one.
+        if (experiencesRequest) experiencesRequest.abort();
+        experiencesRequest = new AbortController();
+
+        showOnly({ loading: true });
+
+        try {
+            const params = new URLSearchParams();
+            if (query) params.set("title", query);
+            categories.forEach(value => params.append("category", value));
+            const url = params.toString()
+                ? `${EXPERIENCES_ENDPOINT}?${params}`
+                : EXPERIENCES_ENDPOINT;
+            const response = await fetch(url, {
+                headers: { "Accept": "application/json" },
+                signal: experiencesRequest.signal,
+            });
+            if (!response.ok) throw new Error("status " + response.status);
+
+            const experiences = await response.json();
+
+            if (experiences.length === 0) {
+                emptyState.textContent = query || categories.length
+                    ? "Tidak ada pengalaman yang cocok dengan saringan ini."
+                    : "Belum ada pengalaman yang ditambahkan.";
+                showOnly({ empty: true });
+                return;
+            }
+
+            track.replaceChildren(...experiences.map(buildCard));
+            showOnly({ cards: true });
+            // The clones and the arrow handlers belong to the cards that were
+            // on screen a moment ago, so the carousel is built again.
+            initExperienceCarousel();
+        } catch (error) {
+            if (error.name === "AbortError") return;
+            console.error("Gagal memuat pengalaman:", error);
+            showOnly({ error: true });
+        }
+    }
+
+    // One listener on the container, because the forms inside it are replaced
+    // on every search and would each need rebinding otherwise.
+
+    // A starred card may also be on screen as one of the carousel clones, so
+    // every copy with the same action is rewritten, not just the one clicked.
+    function applyStar(action, data) {
+        document.querySelectorAll(`.star-form[action="${action}"]`).forEach(function (form) {
+            const button = form.querySelector("button");
+            button.classList.toggle("is-starred", data.is_starred);
+            button.title = data.star_count
+                ? `Dibintangi oleh ${data.starred_by_names}`
+                : "Jadilah yang pertama memberi star";
+            button.querySelector(".star-count").textContent = data.star_count;
+            button.childNodes.forEach(function (node) {
+                if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                    node.textContent = data.is_starred ? " Unstar " : " Star ";
+                }
+            });
+        });
+    }
+
+    async function remove(form) {
+        const button = form.querySelector("button");
+        button.disabled = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": CSRF_TOKEN,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: new FormData(form),
+            });
+            if (!response.ok) throw new Error("status " + response.status);
+
+            showToast("Terhapus", "Pengalaman itu sudah dikeluarkan dari daftar.", "success");
+            // The list is asked again rather than the card pulled out by hand:
+            // the keyword and the categories decide what belongs on screen, and
+            // a deleted card may have copies of itself still rendered.
+            search();
+        } catch (error) {
+            console.error("Gagal menghapus:", error);
+            showToast("Gagal menghapus", "Pengalaman itu masih ada di daftar.", "error");
+            button.disabled = false;
+        }
+    }
+
+    async function star(form) {
+        const button = form.querySelector("button");
+        button.disabled = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": CSRF_TOKEN,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: new FormData(form),
+            });
+
+            // Signing in is still a redirect, which fetch follows, so an
+            // unstarred visitor lands here holding the login page as HTML.
+            if (!response.headers.get("Content-Type")?.includes("application/json")) {
+                window.location = response.url;
+                return;
+            }
+
+            applyStar(form.getAttribute("action"), await response.json());
+        } catch (error) {
+            console.error("Gagal mengubah star:", error);
+            showToast("Gagal", "Tidak bisa menghubungi server.", "error");
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    track.addEventListener("submit", function (event) {
+        const starForm = event.target.closest(".star-form");
+        if (starForm) {
+            event.preventDefault();
+            star(starForm);
+            return;
+        }
+
+        const form = event.target.closest(".delete-form");
+        if (!form) return;
+
+        event.preventDefault();
+        if (confirm(`Hapus ${form.dataset.title}? Pengalaman ini tidak bisa dikembalikan.`)) {
+            remove(form);
+        }
+    });
+
+    function search() {
+        fetchExperiences(searchInput.value.trim(), [...activeCategories]);
+    }
+
+    // A popover sits in the top layer, outside the page flow, so it cannot be
+    // positioned by CSS alone against a button further down the document.
+    // Anchor positioning would do it, but it is not in Firefox yet.
+    const filterButton = document.querySelector('.project-toolbar [popovertarget="category-filter"]');
+    const categoryCount = document.getElementById("category-count");
+
+    categoryFilter.addEventListener("beforetoggle", function (event) {
+        if (event.newState !== "open") return;
+
+        const button = filterButton.getBoundingClientRect();
+        const width = Math.min(320, window.innerWidth - 32);
+        categoryFilter.style.width = `${width}px`;
+        categoryFilter.style.top = `${button.bottom + 8}px`;
+        categoryFilter.style.left = `${Math.max(16, Math.min(button.right - width, window.innerWidth - width - 16))}px`;
+    });
+
+    // The panel stays open, because picking two categories in a row is the
+    // ordinary case and reopening it between them is not worth the click.
+    categoryFilter.addEventListener("click", function (event) {
+        const choice = event.target.closest("[data-category]");
+        if (!choice) return;
+
+        const value = choice.dataset.category;
+        const on = !activeCategories.has(value);
+        if (on) {
+            activeCategories.add(value);
+        } else {
+            activeCategories.delete(value);
+        }
+        choice.classList.toggle("is-active", on);
+        choice.setAttribute("aria-pressed", String(on));
+        markFilter();
+        search();
+    });
+
+    // Picking every category and picking none both show the whole list, so the
+    // closed button is the only place the difference is visible. It carries the
+    // number that is on, and nothing when the list is not narrowed at all.
+    function markFilter() {
+        const count = activeCategories.size;
+        filterButton.classList.toggle("is-filtering", count > 0);
+        categoryCount.textContent = count;
+        categoryCount.classList.toggle("hide", count === 0);
+        filterButton.setAttribute(
+            "aria-label",
+            count ? `Kategori, ${count} dipilih` : "Kategori"
+        );
+    }
+
+    // The panel is placed once, against where the button was at the time, so a
+    // page that scrolls underneath would leave it hanging in mid-air.
+    addEventListener("scroll", function () {
+        if (categoryFilter.matches(":popover-open")) categoryFilter.hidePopover();
+    }, { passive: true });
+
+    // Each keystroke cancels the previous timer, so the request only leaves
+    // once the typing stops.
+    searchInput.addEventListener("input", function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(search, SEARCH_DELAY);
+    });
+
+    searchForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        clearTimeout(searchTimer);
+        search();
+    });
+
+    // Only the owner gets the modal, so for everyone else the form is absent.
+    // Guarding here keeps the missing element from throwing and taking the
+    // first fetch down with it.
+    const experienceForm = document.getElementById("experience-form");
+
+    if (experienceForm) {
+        experienceForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submit = experienceForm.querySelector('button[type="submit"]');
+            submit.disabled = true;
+
+            try {
+                const response = await fetch(CREATE_ENDPOINT, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": CSRF_TOKEN },
+                    body: new FormData(experienceForm),
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (response.ok) {
+                    experienceForm.reset();
+                    document.getElementById("add-experience-modal").hidePopover();
+                    showToast("Tersimpan", "Pengalaman baru sudah masuk ke daftar.", "success");
+                    // Whatever is in the search box and lit in the category
+                    // dialog decides whether the new entry belongs on screen,
+                    // so the list is asked again rather than patched by hand.
+                    search();
+                } else {
+                    const messages = result.errors
+                        ? Object.values(result.errors).flat().map(error => error.message)
+                        : [result.message || `Gagal menyimpan (status ${response.status}).`];
+                    showToast("Gagal menyimpan", messages.join(" "), "error");
+                }
+            } catch (error) {
+                console.error("Gagal menyimpan pengalaman:", error);
+                showToast("Gagal menyimpan", "Tidak bisa menghubungi server.", "error");
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    }
+
+    search();
+    </script>
 {% endblock %}

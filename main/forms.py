@@ -180,3 +180,17 @@ class ExperienceForm(ModelForm):
         if self.instance.pk:
             self.fields["is_finished"].initial = not self.instance.is_ongoing
 
+    # The same second line of defence as ProjectForm above, and for the same
+    # reason: the escaping the carousel does before it writes a card is the one
+    # that protects the rows already in the database, this one only cleans what
+    # is saved from here on.
+
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError("Nama pengalaman tidak boleh hanya berisi tag HTML.")
+        return title
+
+    def clean_description(self):
+        return strip_tags(self.cleaned_data["description"]).strip()
+

@@ -124,6 +124,4 @@ sftp-config.json
 # Django collectstatic output
 staticfiles/
 
-# Vercel
-.vercel/
 .env.local
