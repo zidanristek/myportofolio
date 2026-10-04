@@ -426,6 +426,29 @@ class ExperienceCategoryFilterTest(TestCase):
             self.assertContains(response, 'data-category="%s"' % value)
             self.assertContains(response, label)
 
+    def test_several_categories_narrow_to_their_union(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"),
+                {"category": ["research", "volunteer"]},
+            ).content
+        )
+
+        self.assertEqual(
+            sorted(row["fields"]["title"] for row in body),
+            ["Asisten Riset", "Project Officer URBAN 2026"],
+        )
+
+    def test_an_unknown_category_is_dropped_from_the_set(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"),
+                {"category": ["research", "<script>"]},
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body], ["Asisten Riset"])
+
     def test_the_endpoint_narrows_to_one_category(self):
         body = json.loads(
             self.client.get(
@@ -486,6 +509,15 @@ class ProjectCategoryFilterTest(TestCase):
         body = json.loads(
             self.client.get(
                 reverse("main:get_projects_json"), {"category": "<script>"}
+            ).content
+        )
+
+        self.assertEqual(len(body), 2)
+
+    def test_several_categories_narrow_to_their_union(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"), {"category": ["game", "tool"]}
             ).content
         )
 

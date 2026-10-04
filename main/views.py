@@ -134,21 +134,23 @@ def toggle_star_experience(request, experience_id):
 
 
 def _matching_experiences(request):
-    """Every experience, narrowed by the title and category in the query string.
+    """Every experience, narrowed by the title and categories in the query.
 
-    An unknown category is ignored rather than refused. The value arrives from
-    a query string anyone can type, and an empty carousel is a worse answer to
-    a typo than simply showing everything.
+    category may appear more than once, because the toolbar lets several be
+    picked at a time. Unknown values are dropped rather than refused: they
+    arrive from a query string anyone can type, and an empty carousel is a
+    worse answer to a typo than simply showing everything.
     """
     experiences = Experience.objects.all()
     title_query = request.GET.get("title", "").strip()
-    category = request.GET.get("category", "").strip()
+    known = dict(Experience.EXPERIENCE_CHOICES)
+    categories = [value for value in request.GET.getlist("category") if value in known]
 
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
 
-    if category in dict(Experience.EXPERIENCE_CHOICES):
-        experiences = experiences.filter(category=category)
+    if categories:
+        experiences = experiences.filter(category__in=categories)
 
     return experiences
 
@@ -270,20 +272,21 @@ def delete_experience(request, experience_id):
 
 
 def _matching_projects(request):
-    """Every project, narrowed by the title and category in the query string.
+    """Every project, narrowed by the title and categories in the query.
 
-    An unknown category is ignored rather than refused, for the same reason as
-    the experience list above.
+    Several categories at a time, unknown ones dropped, for the same reasons
+    as the experience list above.
     """
     projects = Project.objects.all()
     title_query = request.GET.get("title", "").strip()
-    category = request.GET.get("category", "").strip()
+    known = dict(Project.CATEGORY_CHOICES)
+    categories = [value for value in request.GET.getlist("category") if value in known]
 
     if title_query:
         projects = projects.filter(title__icontains=title_query)
 
-    if category in dict(Project.CATEGORY_CHOICES):
-        projects = projects.filter(category=category)
+    if categories:
+        projects = projects.filter(category__in=categories)
 
     return projects
 
