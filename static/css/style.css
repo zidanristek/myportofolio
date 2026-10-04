@@ -1807,6 +1807,24 @@ body.menu-open {
     }
 }
 
+/* The filter button is not an action on the list, it only chooses what the
+   list shows, so it stays neutral next to the green search and add buttons. */
+
+.btn-neutral {
+    background: rgba(255, 255, 255, 0.08);
+    background-image: none;
+    border-color: rgba(195, 207, 221, 0.45);
+    color: var(--n-300);
+    box-shadow: none;
+}
+
+.btn-neutral:hover,
+.btn-neutral:focus-visible {
+    border-color: var(--n-100);
+    color: var(--n-100);
+    background: rgba(255, 255, 255, 0.16);
+}
+
 /* The category choices inside the filter dialog. They wrap rather than scroll,
    because six short labels fit two rows even on a phone. */
 
