@@ -39,11 +39,24 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
-        self.assertContains(response, self.experience.title)
-        self.assertContains(response, self.experience.description)
-        self.assertContains(response, "Part-Time")
-        self.assertContains(response, "Sedang berlangsung")
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
+
+    def test_the_page_ships_the_frame_without_the_cards(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertNotContains(response, self.experience.title)
+        self.assertContains(response, 'id="experience-track"')
+        self.assertContains(response, 'id="loading"')
+
+    def test_the_card_contents_come_from_the_endpoint(self):
+        fields = json.loads(
+            self.client.get(reverse("main:get_experiences_json")).content
+        )[0]["fields"]
+
+        self.assertEqual(fields["title"], self.experience.title)
+        self.assertEqual(fields["description"], self.experience.description)
+        self.assertEqual(fields["category"], "Part-Time")
+        self.assertTrue(fields["is_ongoing"])
 
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
@@ -54,11 +67,13 @@ class MainTest(TestCase):
     def test_completed_experience(self):
         self.experience.ended_at = timezone.now()
         self.experience.save()
-        response = self.client.get(reverse("main:show_experience"))
+
+        fields = json.loads(
+            self.client.get(reverse("main:get_experiences_json")).content
+        )[0]["fields"]
 
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, "Selesai")
-        self.assertNotContains(response, "Sedang berlangsung")
+        self.assertFalse(fields["is_ongoing"])
 
 
 class ProjectTest(TestCase):
@@ -602,15 +617,14 @@ class ExperienceWriteTest(TestCase):
         self.assertContains(response, "<django-objects")
         self.assertContains(response, self.experience.title)
 
-    def test_edit_link_survives_the_json_round_trip(self):
+    def test_the_page_carries_the_templates_the_script_fills_in(self):
+        # The real keys only arrive as JSON, so the page ships one url per
+        # action built around a dummy key for the script to substitute into.
         response = self.client.get(reverse("main:show_experience"))
 
-        self.assertContains(
-            response, reverse("main:update_experience", args=[self.experience.id])
-        )
-        self.assertContains(
-            response, reverse("main:delete_experience", args=[self.experience.id])
-        )
+        dummy = "00000000-0000-0000-0000-000000000000"
+        self.assertContains(response, reverse("main:update_experience", args=[dummy]))
+        self.assertContains(response, reverse("main:delete_experience", args=[dummy]))
 
     def test_delete_experience(self):
         response = self.client.post(
@@ -967,25 +981,26 @@ class EditorRoleTest(TestCase):
         self.assertEqual(self.client.get(edit).status_code, 403)
 
     def test_the_page_offers_each_role_only_what_it_may_use(self):
-        edit = reverse("main:update_experience", args=[self.experience.id])
-        delete = reverse("main:delete_experience", args=[self.experience.id])
         add = reverse("main:create_experience")
 
+        # The buttons are assembled by the script from these two flags, so the
+        # flags are what the page has to get right.
         self.client.force_login(self.regular)
         regular = self.client.get(reverse("main:show_experience"))
-        self.assertNotContains(regular, edit)
+        self.assertContains(regular, 'const CAN_CHANGE = "false"')
+        self.assertContains(regular, 'const IS_OWNER = "false"')
         self.assertNotContains(regular, add)
 
         self.client.force_login(self.editor)
         editor = self.client.get(reverse("main:show_experience"))
-        self.assertContains(editor, edit)
-        self.assertNotContains(editor, delete)
+        self.assertContains(editor, 'const CAN_CHANGE = "true"')
+        self.assertContains(editor, 'const IS_OWNER = "false"')
         self.assertNotContains(editor, add)
 
         self.client.force_login(self.owner)
         owner = self.client.get(reverse("main:show_experience"))
-        self.assertContains(owner, edit)
-        self.assertContains(owner, delete)
+        self.assertContains(owner, 'const CAN_CHANGE = "true"')
+        self.assertContains(owner, 'const IS_OWNER = "true"')
         self.assertContains(owner, add)
 
 

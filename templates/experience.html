@@ -11,7 +11,7 @@
 
             <div class="shell project-toolbar">
                 <form method="get" action="{% url 'main:show_experience' %}" class="project-search">
-                    <input type="search" name="title" value="{{ title_query }}"
+                    <input type="search" name="title" id="search-input" value="{{ title_query }}"
                            class="project-search-input"
                            placeholder="Cari nama pengalaman"
                            aria-label="Cari nama pengalaman">
@@ -29,57 +29,158 @@
                 {% endif %}
             </div>
 
-            <div class="carousel">
+            <div class="shell">
+                <p id="loading" class="empty-state hide">Memuat pengalaman...</p>
+                <p id="error" class="empty-state hide">Gagal memuat pengalaman. Coba muat ulang halaman.</p>
+                <p id="empty" class="empty-state hide">Belum ada pengalaman yang ditambahkan.</p>
+            </div>
+
+            <div class="carousel hide">
                 <button class="carousel-arrow is-prev" type="button"
                         data-step="-1" aria-label="Previous experience"></button>
 
-                <div class="experience-grid" id="experience-track" tabindex="0">
-                    {% for experience in experience_list %}
-                        <article class="card experience-card">
-                            {% if experience.thumbnail %}
-                                <img class="experience-cover" src="{% static experience.thumbnail %}"
-                                     alt="" loading="lazy" width="1080" height="1350">
-                            {% endif %}
-                            <div class="experience-body">
-                                <span class="experience-category visually-hidden">
-                                    {{ experience.get_category_display }}
-                                </span>
-                                <h2>{{ experience.title }}</h2>
-                                <p class="experience-description">
-                                    {{ experience.description }}
-                                </p>
-
-                                {% if experience.is_ongoing %}
-                                    <p class="experience-status visually-hidden">Sedang berlangsung</p>
-                                {% else %}
-                                    <p class="experience-status visually-hidden">Selesai</p>
-                                {% endif %}
-
-                                <div class="project-actions">
-                                    {% include "components/experience_star.html" with experience=experience %}
-                                    {% if perms.main.change_experience %}
-                                        <a href="{% url 'main:update_experience' experience.id %}"
-                                           class="btn btn-secondary btn-sm">Ubah</a>
-                                    {% endif %}
-                                    {% if user.is_superuser %}
-                                        {% include "components/experience_delete_modal.html" with experience=experience %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </article>
-                    {% empty %}
-                        {% if title_query %}
-                            <p class="empty-state">Tidak ada pengalaman dengan nama tersebut.</p>
-                        {% else %}
-                            <p class="empty-state">
-                                Belum ada pengalaman yang ditambahkan.
-                            </p>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+                <div class="experience-grid" id="experience-track" tabindex="0"></div>
 
                 <button class="carousel-arrow is-next" type="button"
                         data-step="1" aria-label="Next experience"></button>
             </div>
         </section>
+
+    <script src="{% static 'js/carousel.js' %}"></script>
+    <script>
+    const EXPERIENCES_ENDPOINT = "{% url 'main:get_experiences_json' %}";
+    const CAN_CHANGE = "{{ perms.main.change_experience|yesno:'true,false' }}" === "true";
+    const IS_OWNER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+
+    // Every url below is built from one dummy key, because the template tag
+    // needs a valid UUID at render time and the real ones only arrive as JSON.
+    const DUMMY_ID = "00000000-0000-0000-0000-000000000000";
+    const EDIT_URL = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
+    const DELETE_URL = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
+    const STAR_URL = "{% url 'main:toggle_star_experience' '00000000-0000-0000-0000-000000000000' %}";
+
+    const loadingState = document.getElementById("loading");
+    const errorState = document.getElementById("error");
+    const emptyState = document.getElementById("empty");
+    const track = document.getElementById("experience-track");
+    const carousel = document.querySelector(".carousel");
+    const searchInput = document.getElementById("search-input");
+
+    let experiencesRequest;
+
+    function showOnly({ loading = false, error = false, empty = false, cards = false }) {
+        loadingState.classList.toggle("hide", !loading);
+        errorState.classList.toggle("hide", !error);
+        emptyState.classList.toggle("hide", !empty);
+        carousel.classList.toggle("hide", !cards);
+    }
+
+    const csrf = `<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">`;
+
+    function buildCard(item) {
+        const experience = item.fields;
+
+        const cover = experience.thumbnail_url
+            ? `<img class="experience-cover" src="${escapeHtml(experience.thumbnail_url)}"
+                    alt="" loading="lazy" width="1080" height="1350">`
+            : "";
+
+        const starTitle = experience.star_count
+            ? `Dibintangi oleh ${escapeHtml(experience.starred_by_names)}`
+            : "Jadilah yang pertama memberi star";
+        const star = `
+            <form method="post" action="${STAR_URL.replace(DUMMY_ID, item.pk)}" class="star-form">
+                ${csrf}
+                <button type="submit" class="btn btn-sm btn-star${experience.is_starred ? " is-starred" : ""}"
+                        title="${starTitle}">
+                    <span aria-hidden="true">&#9733;</span>
+                    ${experience.is_starred ? "Unstar" : "Star"}
+                    <span class="star-count">${experience.star_count}</span>
+                </button>
+            </form>`;
+
+        const edit = CAN_CHANGE
+            ? `<a href="${EDIT_URL.replace(DUMMY_ID, item.pk)}" class="btn btn-secondary btn-sm">Ubah</a>`
+            : "";
+
+        // The popover dialog the server used to render carried one id per card,
+        // and every clone in the loop carried a copy of it. Minting those ids
+        // in JavaScript is not worth it, so a card made here asks with confirm.
+        const remove = IS_OWNER
+            ? `<form method="post" action="${DELETE_URL.replace(DUMMY_ID, item.pk)}"
+                     class="delete-form" data-title="${escapeHtml(experience.title)}">
+                ${csrf}
+                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+            </form>`
+            : "";
+
+        const card = document.createElement("article");
+        card.className = "card experience-card";
+        card.innerHTML = `
+            ${cover}
+            <div class="experience-body">
+                <span class="experience-category visually-hidden">${escapeHtml(experience.category)}</span>
+                <h2>${escapeHtml(experience.title)}</h2>
+                <p class="experience-description">${escapeHtml(experience.description)}</p>
+                <p class="experience-status visually-hidden">${experience.is_ongoing ? "Sedang berlangsung" : "Selesai"}</p>
+                <div class="project-actions">
+                    ${star}
+                    ${edit}
+                    ${remove}
+                </div>
+            </div>`;
+        return card;
+    }
+
+    async function fetchExperiences(query = "") {
+        // A slow first request must not land on top of a later, narrower one.
+        if (experiencesRequest) experiencesRequest.abort();
+        experiencesRequest = new AbortController();
+
+        showOnly({ loading: true });
+
+        try {
+            const url = query
+                ? `${EXPERIENCES_ENDPOINT}?title=${encodeURIComponent(query)}`
+                : EXPERIENCES_ENDPOINT;
+            const response = await fetch(url, {
+                headers: { "Accept": "application/json" },
+                signal: experiencesRequest.signal,
+            });
+            if (!response.ok) throw new Error("status " + response.status);
+
+            const experiences = await response.json();
+
+            if (experiences.length === 0) {
+                emptyState.textContent = query
+                    ? "Tidak ada pengalaman dengan nama tersebut."
+                    : "Belum ada pengalaman yang ditambahkan.";
+                showOnly({ empty: true });
+                return;
+            }
+
+            track.replaceChildren(...experiences.map(buildCard));
+            showOnly({ cards: true });
+            // The clones and the arrow handlers belong to the cards that were
+            // on screen a moment ago, so the carousel is built again.
+            initExperienceCarousel();
+        } catch (error) {
+            if (error.name === "AbortError") return;
+            console.error("Gagal memuat pengalaman:", error);
+            showOnly({ error: true });
+        }
+    }
+
+    // One listener on the container, because the forms inside it are replaced
+    // on every search and would each need rebinding otherwise.
+    track.addEventListener("submit", function (event) {
+        const form = event.target.closest(".delete-form");
+        if (!form) return;
+        if (!confirm(`Hapus ${form.dataset.title}? Pengalaman ini tidak bisa dikembalikan.`)) {
+            event.preventDefault();
+        }
+    });
+
+    fetchExperiences(searchInput.value.trim());
+    </script>
 {% endblock %}

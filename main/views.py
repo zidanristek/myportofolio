@@ -191,12 +191,10 @@ def get_experiences_xml(request):
 
 
 def show_experience(request):
-    # The round trip through the JSON endpoint is gone. That endpoint no longer
-    # answers in the serializer's format, because the page needs fields no
-    # serializer can produce, so there is nothing left to deserialize back.
+    # Only the frame of the page is rendered here. The cards are fetched from
+    # the JSON endpoint by the browser, so searching no longer costs a reload.
     context = {
         "name": OWNER,
-        "experience_list": _matching_experiences(request).prefetch_related("starred_by"),
         "title_query": request.GET.get("title", "").strip(),
     }
     return render(request, "experience.html", context)
