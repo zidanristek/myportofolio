@@ -80,20 +80,20 @@ Jalankan `python manage.py test` untuk menjalankan 85 test di `main/tests.py`.
 | `main/models.py` | model `Experience` dan `Project` |
 | `main/forms.py` | `ProjectForm`, `ExperienceForm`, dan `SignUpForm` |
 | `main/admin.py` | `Experience` dan `Project` didaftarkan ke Django Admin |
-| `main/views.py` | tiga halaman, empat endpoint data, dan tujuh view tulis |
+| `main/views.py` | tiga halaman, empat endpoint data, dan sembilan view tulis |
 | `main/urls.py` | rute halaman dan `/api/` dengan namespace `main` |
 | `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
-| `main/tests.py` | 85 test |
+| `main/tests.py` | 132 test |
 | `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
 | `templates/projects.html` | kerangka daftar proyek, kartunya dirakit JavaScript |
-| `templates/experience.html` | carousel pengalaman |
+| `templates/experience.html` | kerangka carousel pengalaman, kartunya dirakit JavaScript |
 | `templates/projects_form.html` | form tambah dan ubah proyek |
 | `templates/experience_form.html` | form tambah dan ubah pengalaman |
 | `templates/auth_form.html` | kerangka form akun, diwarisi register dan login |
 | `templates/components/` | potongan template yang dipakai ulang |
 | `static/css/style.css` | seluruh gaya |
-| `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D, `toast.js` notifikasi |
+| `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D, `toast.js` notifikasi, `carousel.js` carousel pengalaman, `dom.js` escaping dipakai dua halaman |
 | `static/img/` | foto, logo, sampul proyek, gambar pengalaman, ikon teknologi |
 | `static/model/object.fbx` | Makara UI untuk penampil 3D |
 
@@ -207,6 +207,7 @@ gitGraph
 | Tutorial 04 | registrasi, login, logout, cookie `last_login`, tombol star pada proyek, penguncian view tulis untuk pemilik, enam belas unit test tambahan |
 | Tugas 4 | peran Editor lewat `Group` dan permission, star pada pengalaman, pembatasan empat peran di sisi server, empat belas unit test tambahan |
 | Tutorial 05 | notifikasi toast, daftar proyek diambil lewat AJAX, pencarian dengan debounce 300 ms, modal tambah proyek yang dikirim lewat `fetch`, escaping di sisi klien dan pembersihan tag di sisi server, tiga belas unit test tambahan |
+| Tugas 5 | halaman pengalaman pindah ke AJAX dengan status memuat, kosong, dan gagal, pencarian ber-debounce, saringan kategori berganda di kedua halaman, modal tambah pengalaman lewat `fetch`, star dan hapus tanpa muat ulang, `strip_tags` pada `ExperienceForm`, empat puluh tujuh unit test tambahan |
 
 ## Peran
 
@@ -366,6 +367,44 @@ template hanya mengatur apa yang terlihat, bukan apa yang boleh dijalankan.
    tiap peran mencoba create, change, delete langsung ke URL-nya, bukan dicek
    dari ada-tidaknya tombol di HTML. Kebawa dari Supabase, di sana kalau cuma
    sembunyikan tombol tapi lupa RLS policy, tabelnya terbuka.
+
+### Tugas 5
+
+1. Debouncing itu nunda permintaan sampai orangnya berhenti ngetik. Tiap huruf
+   masuk, timer sebelumnya dibatalkan dan diganti timer baru 300 ms, jadi yang
+   benar-benar dikirim cuma yang terakhir. Tanpa ini "urbann" jadi enam
+   permintaan ke `/api/experiences/`, enam query ke database, buat lima hasil
+   yang dibuang begitu huruf berikutnya diketik. Dan yang lebih ngeselin,
+   urutan baliknya tidak dijamin, permintaan "u" bisa saja sampai belakangan
+   dan nimpa hasil "urbann", jadi daftarnya salah bukan cuma boros. Saya tambah
+   `AbortController` juga biar permintaan lama dibatalkan, bukan cuma diabaikan.
+   Angka 300 ms saya ambil karena di bawah itu masih kekirim per huruf, di atas
+   itu mulai berasa lemot. Pas saya cek di browser, enam huruf diketik cepat
+   jadi satu permintaan.
+2. `fetch()` balikin Promise, bukan datanya. Jadi `const r = fetch(url)` isinya
+   janji yang belum tentu sudah ditepati, dan `r.json()` langsung error karena
+   Promise tidak punya method itu. `await` nahan fungsinya sampai jawabannya
+   benar-benar sampai, baru isinya bisa dipakai. Butuh dua kali: sekali buat
+   responsnya datang, sekali lagi buat `await response.json()` karena membaca
+   body juga bukan hal yang instan, dia masih ngalir dari jaringan. Kalau tidak
+   pakai `await` yang masuk ke kartu bukan data tapi object Promise, dan yang
+   lebih jahat, blok `try/catch`-nya jadi tidak ada gunanya karena fungsinya
+   sudah selesai duluan sebelum errornya muncul. Ini beda sama `.then()` yang
+   sebenarnya sama saja, cuma `await` kebacanya lurus dari atas ke bawah.
+3. XSS itu waktu input orang lain ikut jalan sebagai kode di browser korban,
+   bukan tampil sebagai teks. Yang bahaya karena skripnya jalan di origin situs
+   saya, jadi dia bisa baca cookie, nyamar jadi pengguna yang lagi login, atau
+   kirim data ke server lain. Template Django aman secara default, tiap
+   `{{ variable }}` otomatis di-escape, jadi `<script>` tampil sebagai tulisan.
+   Begitu kartunya saya rakit sendiri di JavaScript dan ditempel pakai
+   `innerHTML`, jaring pengaman itu hilang, karena `innerHTML` memang tugasnya
+   mengurai HTML. Makanya saya escape manual lewat `escapeHtml` di
+   `static/js/dom.js`, dan di server saya buang tag-nya pakai `strip_tags` di
+   `clean_title` dan `clean_description`. Dua lapis karena yang di klien
+   melindungi baris lama yang sudah terlanjur ada di database, yang di server
+   melindungi baris baru. Saya coba isi judulnya dengan
+   `<img src="x" onerror="alert('XSS!')">` dan hasilnya tampil sebagai teks
+   biasa, tidak ada alert.
 
 ## Penggunaan AI
 
@@ -622,3 +661,91 @@ Hasilnya saya tempel balik ke berkas yang saya tunjuk, lalu saya jalankan
 meleset dua kali, karena jawaban pertamanya memeriksa nama grup dan jawaban
 kedua memakai atribut yang tidak ada di model `User`, jadi saya persempit
 instruksinya sampai ketemu `has_perm`.
+
+### Tugas 5
+
+Masih Claude, dan alurnya masih sama: nulis, error, baru fix. Pekan ini bagian
+yang paling banyak saya kerjakan sendiri justru bagian yang kelihatan sepele,
+yaitu memutuskan halaman mana yang digarap. Tugasnya minta bagian selain
+Projects, dan saya pilih Experience karena bagian itu yang saya kerjakan di
+Tugas 3 dan Tugas 4, jadi tombol star dan kategorinya sudah ada. Pilihan
+lainnya bikin halaman Sertifikat baru, tapi itu berarti model baru, migrasi
+baru, dan isi data baru, kerjaan yang tidak dinilai sama sekali di rubrik
+minggu ini.
+
+**Yang dibantu Claude.** Paling banyak bagian yang pernah saya tulis di React
+tapi harus ditulis ulang tanpa framework: pola `fetch` plus `await`,
+`AbortController` supaya permintaan lama dibatalkan, dan rangka
+`showOnly({ loading, error, empty, cards })` buat mengatur empat keadaan
+halaman. Di React saya terbiasa dapat ini dari TanStack Query, jadi saya tanya
+dulu bagaimana bentuknya kalau ditulis manual. CSS panel kategori juga, seperti
+biasa.
+
+**Yang saya kerjakan sendiri.** Keputusan desainnya. Saringan kategori dibuat
+bisa pilih banyak, bukan satu, dan itu keputusan saya setelah lihat sendiri
+bahwa pilih satu-satu terasa kurang. Lencana angka di tombol juga, karena saya
+yang menyadari waktu panelnya ditutup tidak ada tanda apa pun bahwa daftarnya
+sedang disaring. Teks tombol, judul panel, dan isi semua pesan toast saya yang
+tentukan.
+
+**Keterbatasan yang kelihatan pekan ini.** Dua hal dan dua-duanya soal yang
+tidak kelihatan dari kode.
+
+Pertama, carousel di halaman Experience. Kodenya menyalin kartu ke kiri dan
+kanan supaya geserannya nyambung, dan salinan itu dibuat sekali waktu halaman
+dimuat. Begitu kartunya diganti tiap kali data diambil ulang, salinan lamanya
+basi. Jawaban pertamanya cuma memanggil ulang fungsi yang sama, yang akibatnya
+pendengar klik numpuk tiap render. Saya baru puas setelah diganti pakai
+`AbortController` supaya pendengar lama dibuang dulu. Ini tipe bug yang tidak
+muncul di test, cuma kelihatan kalau halamannya benar-benar dibuka.
+
+Kedua, panel kategori. Awalnya dibuat pakai komponen modal yang sudah ada, dan
+secara kode itu benar, tapi efeknya seluruh halaman digelapkan dan diblur cuma
+untuk memilih kategori. Saya yang bilang "ini malah kelihatan nge-blank", dan
+baru setelah itu diganti jadi panel kecil di bawah tombolnya. Pelajarannya,
+"jalan" dan "benar" itu dua hal berbeda, dan yang kedua cuma bisa saya nilai
+dengan membuka halamannya.
+
+Contoh prompting yang saya pakai pekan ini:
+
+````
+async function fetchExperiences(query) {
+    const response = await fetch(url);
+    const data = await response.json();
+    ...
+}
+
+coba ini kira-kira kalau misal orangnya ngetik cepet terus permintaan
+yang lama baru sampai belakangan gimana? hasilnya ketuker ga
+````
+
+````
+<div class="experience-grid" id="experience-track"></div>
+
+kartunya sekarang diisi JavaScript, tapi carouselnya mati. panahnya
+diklik ga gerak. kira-kira kenapa
+````
+
+````
+.modal {
+    position: fixed;
+    inset: 0;
+}
+
+coba ini kira-kira kalau misal saya mau panelnya nempel di bawah tombol
+aja gimana, jangan nutupin satu layar
+````
+
+````
+const star = `<form method="post" action="${url}">...`
+
+tiap klik star halamannya reload terus carouselnya balik ke awal.
+kira-kira kalau misal dikirim pakai fetch gimana, tapi kartunya ada
+kembarannya gara-gara carousel
+````
+
+Hasilnya saya tempel balik ke berkas yang saya tunjuk, lalu saya jalankan
+`manage.py test` dan saya buka halamannya di browser. Yang soal carousel sempat
+meleset karena jawaban pertamanya cuma memanggil ulang fungsi lama tanpa
+membersihkan pendengar yang sudah terpasang, dan baru benar setelah saya
+tunjukkan bahwa klik satu panah jadi menggeser dua kali.
