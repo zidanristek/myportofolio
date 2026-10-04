@@ -619,6 +619,28 @@ class ExperienceAjaxCreateTest(TestCase):
 
         self.assertEqual(self.client.get(self.url).status_code, 405)
 
+    def test_a_title_made_of_tags_is_refused(self):
+        self.client.force_login(self.owner)
+        hostile = '<img src="x" onerror="alert(1)">'
+
+        response = self.client.post(self.url, dict(self.payload, title=hostile))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+
+    def test_tags_are_stripped_out_of_the_text(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, dict(
+            self.payload,
+            title='<b>Panitia</b> COMPFEST',
+            description='<script>alert(1)</script>Mengurus peserta.',
+        ))
+
+        experience = Experience.objects.get(title="Panitia COMPFEST")
+        self.assertEqual(experience.description, "alert(1)Mengurus peserta.")
+        self.assertNotIn("<", experience.description)
+
     def test_the_modal_reaches_the_owner_alone(self):
         visitor = self.client.get(reverse("main:show_experience"))
         self.assertNotContains(visitor, 'id="experience-form"')
