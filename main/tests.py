@@ -727,6 +727,70 @@ class StarApiTest(TestCase):
         self.assertEqual(self.experience.starred_by.count(), 0)
 
 
+class DeleteApiTest(TestCase):
+    """Deleting answers in JSON when the script asks, and still redirects a
+    plain form submit."""
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        self.experience = Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        self.project = Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.url = reverse("main:delete_experience", args=[self.experience.id])
+
+    def _ajax(self, url):
+        return self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+    def test_the_owner_gets_the_deleted_key_back(self):
+        self.client.force_login(self.owner)
+
+        response = self._ajax(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)["pk"], str(self.experience.id))
+        self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_a_project_is_deleted_the_same_way(self):
+        self.client.force_login(self.owner)
+
+        self._ajax(reverse("main:delete_project", args=[self.project.id]))
+
+        self.assertFalse(Project.objects.filter(pk=self.project.id).exists())
+
+    def test_a_plain_submit_still_redirects(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_a_registered_account_cannot_delete(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
+
+        response = self._ajax(self.url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_get_does_not_delete(self):
+        self.client.force_login(self.owner)
+
+        self.client.get(self.url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.

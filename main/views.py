@@ -120,13 +120,18 @@ def _toggle(request, instance):
         instance.starred_by.add(request.user)
 
 
+def _asked_for_json(request):
+    """Whether the caller is the page script rather than a plain form submit."""
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
 def _star_answer(request, instance, fallback):
     """JSON for the script, a redirect for a plain form submit.
 
     Both pages star through fetch now, but the redirect is what a browser with
     no JavaScript still needs, and it costs one branch to keep.
     """
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if _asked_for_json(request):
         starred_by = list(instance.starred_by.all())
         return JsonResponse({
             "star_count": len(starred_by),
@@ -312,6 +317,10 @@ def delete_experience(request, experience_id):
         return redirect("main:show_experience")
 
     experience.delete()
+
+    if _asked_for_json(request):
+        return JsonResponse({"pk": str(experience_id)})
+
     messages.success(request, "Pengalaman berhasil dihapus.")
     return redirect("main:show_experience")
 
@@ -467,5 +476,9 @@ def delete_project(request, project_id):
         return redirect("main:show_projects")
 
     project.delete()
+
+    if _asked_for_json(request):
+        return JsonResponse({"pk": str(project_id)})
+
     messages.success(request, "Proyek berhasil dihapus.")
     return redirect("main:show_projects")

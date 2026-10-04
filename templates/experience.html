@@ -255,6 +255,33 @@
         });
     }
 
+    async function remove(form) {
+        const button = form.querySelector("button");
+        button.disabled = true;
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": CSRF_TOKEN,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: new FormData(form),
+            });
+            if (!response.ok) throw new Error("status " + response.status);
+
+            showToast("Terhapus", "Pengalaman itu sudah dikeluarkan dari daftar.", "success");
+            // The list is asked again rather than the card pulled out by hand:
+            // the keyword and the categories decide what belongs on screen, and
+            // a deleted card may have copies of itself still rendered.
+            search();
+        } catch (error) {
+            console.error("Gagal menghapus:", error);
+            showToast("Gagal menghapus", "Pengalaman itu masih ada di daftar.", "error");
+            button.disabled = false;
+        }
+    }
+
     async function star(form) {
         const button = form.querySelector("button");
         button.disabled = true;
@@ -295,8 +322,10 @@
 
         const form = event.target.closest(".delete-form");
         if (!form) return;
-        if (!confirm(`Hapus ${form.dataset.title}? Pengalaman ini tidak bisa dikembalikan.`)) {
-            event.preventDefault();
+
+        event.preventDefault();
+        if (confirm(`Hapus ${form.dataset.title}? Pengalaman ini tidak bisa dikembalikan.`)) {
+            remove(form);
         }
     });
 
