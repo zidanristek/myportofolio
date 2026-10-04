@@ -266,6 +266,86 @@ class ProjectWriteTest(TestCase):
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
 
 
+class ExperienceApiTest(TestCase):
+    """The endpoint the experience page is about to build its cards from."""
+
+    def setUp(self):
+        self.magang = Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            thumbnail="img/experience/riset.jpg",
+            position=1,
+        )
+        self.lepas = Experience.objects.create(
+            title="Desainer Lepas",
+            description="Mengerjakan identitas visual.",
+            category="freelance",
+            thumbnail="https://contoh.test/desain.jpg",
+            position=2,
+        )
+        self.url = reverse("main:get_experiences_json")
+
+    def _fields(self, response):
+        return [row["fields"] for row in json.loads(response.content)]
+
+    def test_the_payload_carries_what_a_card_needs(self):
+        fields = self._fields(self.client.get(self.url))[0]
+
+        self.assertEqual(fields["title"], "Asisten Riset")
+        self.assertEqual(fields["category"], "Research")
+        self.assertEqual(fields["category_value"], "research")
+        self.assertTrue(fields["is_ongoing"])
+        self.assertEqual(fields["star_count"], 0)
+        self.assertFalse(fields["is_starred"])
+
+    def test_a_static_thumbnail_is_sent_as_a_url(self):
+        # The stored value is a path inside static, which only the server can
+        # turn into something the browser can ask for.
+        fields = self._fields(self.client.get(self.url))[0]
+
+        self.assertEqual(fields["thumbnail_url"], "/static/img/experience/riset.jpg")
+
+    def test_a_full_url_thumbnail_is_left_alone(self):
+        fields = self._fields(self.client.get(self.url))[1]
+
+        self.assertEqual(fields["thumbnail_url"], "https://contoh.test/desain.jpg")
+
+    def test_the_title_narrows_the_list(self):
+        fields = self._fields(self.client.get(self.url, {"title": "riset"}))
+
+        self.assertEqual([field["title"] for field in fields], ["Asisten Riset"])
+
+    def test_the_category_narrows_the_list(self):
+        fields = self._fields(self.client.get(self.url, {"category": "freelance"}))
+
+        self.assertEqual([field["title"] for field in fields], ["Desainer Lepas"])
+
+    def test_a_category_nobody_offers_is_ignored(self):
+        fields = self._fields(self.client.get(self.url, {"category": "<script>"}))
+
+        self.assertEqual(len(fields), 2)
+
+    def test_the_two_filters_narrow_together(self):
+        fields = self._fields(
+            self.client.get(self.url, {"title": "desainer", "category": "research"})
+        )
+
+        self.assertEqual(fields, [])
+
+    def test_the_star_state_answers_per_account(self):
+        warga = User.objects.create_user("warga", password="rahasia-uji")
+        self.magang.starred_by.add(warga)
+
+        anonim = self._fields(self.client.get(self.url))[0]
+        self.assertEqual(anonim["star_count"], 1)
+        self.assertFalse(anonim["is_starred"])
+
+        self.client.force_login(warga)
+        masuk = self._fields(self.client.get(self.url))[0]
+        self.assertTrue(masuk["is_starred"])
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.
@@ -964,4 +1044,6 @@ class ExperienceStarTest(TestCase):
 
         body = json.loads(self.client.get(reverse("main:get_experiences_json")).content)
 
-        self.assertEqual(body[0]["fields"]["starred_by"], [["warga"]])
+        fields = body[0]["fields"]
+        self.assertEqual(fields["starred_by_names"], "warga")
+        self.assertNotIn("starred_by", fields)

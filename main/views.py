@@ -134,22 +134,53 @@ def toggle_star_experience(request, experience_id):
 
 
 def _matching_experiences(request):
-    """Every experience, narrowed by the title in the query string if there is one."""
+    """Every experience, narrowed by the title and category in the query string.
+
+    An unknown category is ignored rather than refused. The value arrives from
+    a query string anyone can type, and an empty carousel is a worse answer to
+    a typo than simply showing everything.
+    """
     experiences = Experience.objects.all()
     title_query = request.GET.get("title", "").strip()
+    category = request.GET.get("category", "").strip()
 
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
+
+    if category in dict(Experience.EXPERIENCE_CHOICES):
+        experiences = experiences.filter(category=category)
 
     return experiences
 
 
 def get_experiences_json(request):
-    # starred_by would otherwise leak database ids into a public endpoint.
-    payload = serializers.serialize(
-        "json", _matching_experiences(request), use_natural_foreign_keys=True
-    )
-    return HttpResponse(payload, content_type="application/json")
+    # Assembled by hand rather than through serializers.serialize, for the same
+    # reasons as the projects endpoint below: a serializer knows nothing about
+    # who is asking, so is_starred cannot come out of it, and thumbnail holds
+    # either a path under static or a full URL, which only the server can tell
+    # apart. starred_by is sent as names so no database id leaves here.
+    experiences = _matching_experiences(request).prefetch_related("starred_by")
+
+    data = []
+    for experience in experiences:
+        starred_by = list(experience.starred_by.all())
+        thumbnail = experience.thumbnail or ""
+        data.append({
+            "pk": str(experience.id),
+            "fields": {
+                "title": experience.title,
+                "description": experience.description,
+                "category": experience.get_category_display(),
+                "category_value": experience.category,
+                "thumbnail_url": static(thumbnail) if thumbnail and not thumbnail.startswith("http") else thumbnail,
+                "is_ongoing": experience.is_ongoing,
+                "star_count": len(starred_by),
+                "is_starred": request.user in starred_by,
+                "starred_by_names": ", ".join(user.username for user in starred_by),
+            },
+        })
+
+    return JsonResponse(data, safe=False)
 
 
 def get_experiences_xml(request):
@@ -160,17 +191,12 @@ def get_experiences_xml(request):
 
 
 def show_experience(request):
-    # Same round trip as the projects page: the template is handed objects
-    # rebuilt from the JSON endpoint rather than rows straight off the queryset.
-    response = get_experiences_json(request)
-    experiences = [
-        item.object
-        for item in serializers.deserialize("json", response.content.decode("utf-8"))
-    ]
-
+    # The round trip through the JSON endpoint is gone. That endpoint no longer
+    # answers in the serializer's format, because the page needs fields no
+    # serializer can produce, so there is nothing left to deserialize back.
     context = {
         "name": OWNER,
-        "experience_list": experiences,
+        "experience_list": _matching_experiences(request).prefetch_related("starred_by"),
         "title_query": request.GET.get("title", "").strip(),
     }
     return render(request, "experience.html", context)
