@@ -651,6 +651,73 @@ class ExperienceAjaxCreateTest(TestCase):
         self.assertContains(owner, 'popovertarget="add-experience-modal"')
 
 
+class StarApiTest(TestCase):
+    """Starring answers in JSON when the script asks, and still redirects a
+    plain form submit so the pages work without JavaScript."""
+
+    def setUp(self):
+        self.warga = User.objects.create_user("warga", password="rahasia-uji")
+        self.experience = Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        self.project = Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        self.url = reverse("main:toggle_star_experience", args=[self.experience.id])
+
+    def _ajax(self, url):
+        return self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+
+    def test_the_new_count_comes_straight_back(self):
+        self.client.force_login(self.warga)
+
+        body = json.loads(self._ajax(self.url).content)
+
+        self.assertEqual(body["star_count"], 1)
+        self.assertTrue(body["is_starred"])
+        self.assertEqual(body["starred_by_names"], "warga")
+
+    def test_the_same_click_takes_the_star_away(self):
+        self.client.force_login(self.warga)
+        self._ajax(self.url)
+
+        body = json.loads(self._ajax(self.url).content)
+
+        self.assertEqual(body["star_count"], 0)
+        self.assertFalse(body["is_starred"])
+
+    def test_a_project_star_answers_the_same_way(self):
+        self.client.force_login(self.warga)
+
+        body = json.loads(
+            self._ajax(reverse("main:toggle_star", args=[self.project.id])).content
+        )
+
+        self.assertEqual(body["star_count"], 1)
+        self.assertTrue(body["is_starred"])
+
+    def test_a_plain_submit_still_redirects(self):
+        self.client.force_login(self.warga)
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertEqual(self.experience.starred_by.count(), 1)
+
+    def test_a_visitor_is_sent_to_the_login_page(self):
+        response = self._ajax(self.url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.

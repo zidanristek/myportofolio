@@ -120,17 +120,36 @@ def _toggle(request, instance):
         instance.starred_by.add(request.user)
 
 
+def _star_answer(request, instance, fallback):
+    """JSON for the script, a redirect for a plain form submit.
+
+    Both pages star through fetch now, but the redirect is what a browser with
+    no JavaScript still needs, and it costs one branch to keep.
+    """
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        starred_by = list(instance.starred_by.all())
+        return JsonResponse({
+            "star_count": len(starred_by),
+            "is_starred": request.user in starred_by,
+            "starred_by_names": ", ".join(user.username for user in starred_by),
+        })
+
+    return redirect(fallback)
+
+
 @login_required(login_url="/login/")
 def toggle_star(request, project_id):
     """Any signed-in account may star. Changing the entry itself needs more."""
-    _toggle(request, get_object_or_404(Project, pk=project_id))
-    return redirect("main:show_projects")
+    project = get_object_or_404(Project, pk=project_id)
+    _toggle(request, project)
+    return _star_answer(request, project, "main:show_projects")
 
 
 @login_required(login_url="/login/")
 def toggle_star_experience(request, experience_id):
-    _toggle(request, get_object_or_404(Experience, pk=experience_id))
-    return redirect("main:show_experience")
+    experience = get_object_or_404(Experience, pk=experience_id)
+    _toggle(request, experience)
+    return _star_answer(request, experience, "main:show_experience")
 
 
 def _matching_experiences(request):
