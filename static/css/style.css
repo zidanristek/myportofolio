@@ -1825,6 +1825,28 @@ body.menu-open {
     background: rgba(255, 255, 255, 0.16);
 }
 
+/* The category panel. Its top and left are written by the script, because a
+   popover lives in the top layer and has no box to position against. */
+
+.filter-popover {
+    position: fixed;
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid rgba(143, 199, 239, 0.28);
+    background: var(--gradient-card-blue), var(--navy-900);
+    box-shadow: 0 18px 40px rgba(1, 21, 43, 0.55);
+}
+
+.filter-popover:not(:popover-open) {
+    display: none;
+}
+
+.filter-popover h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--n-100);
+}
+
 .modal-head {
     display: flex;
     align-items: center;

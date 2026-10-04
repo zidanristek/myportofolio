@@ -65,31 +65,29 @@
         {% include "components/experience_form_modal.html" %}
     {% endif %}
 
-    <div id="category-filter" class="modal" popover="auto" role="dialog"
-         aria-modal="true" aria-labelledby="category-filter-title">
-        <button type="button" class="modal-backdrop" popovertarget="category-filter"
-                popovertargetaction="hide" aria-label="Tutup kategori"></button>
-
-        <div class="card modal-box">
-            <div class="modal-head">
-                <h2 id="category-filter-title">Kategori</h2>
-                <button type="button" class="btn btn-neutral btn-icon btn-close"
-                        popovertarget="category-filter" popovertargetaction="hide"
-                        aria-label="Tutup kategori">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         aria-hidden="true" focusable="false">
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <div class="filter-list">
-                {% for value, label in categories %}
-                    <button type="button" class="btn btn-secondary btn-sm"
-                            data-category="{{ value }}" aria-pressed="false">{{ label }}</button>
-                {% endfor %}
-            </div>
+    {# A panel under its own button rather than a dialog over the page: it only
+       narrows the list, so dimming and blurring everything behind it made the
+       page look broken. popover="auto" still closes it on an outside click. #}
+    <div id="category-filter" class="card filter-popover" popover="auto"
+         aria-labelledby="category-filter-title">
+        <div class="modal-head">
+            <h2 id="category-filter-title">Kategori</h2>
+            <button type="button" class="btn btn-neutral btn-icon btn-close"
+                    popovertarget="category-filter" popovertargetaction="hide"
+                    aria-label="Tutup kategori">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     aria-hidden="true" focusable="false">
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="filter-list">
+            {% for value, label in categories %}
+                <button type="button" class="btn btn-secondary btn-sm"
+                        data-category="{{ value }}" aria-pressed="false">{{ label }}</button>
+            {% endfor %}
         </div>
     </div>
 
@@ -249,7 +247,22 @@
         fetchExperiences(searchInput.value.trim(), [...activeCategories]);
     }
 
-    // The dialog stays open, because picking two categories in a row is the
+    // A popover sits in the top layer, outside the page flow, so it cannot be
+    // positioned by CSS alone against a button further down the document.
+    // Anchor positioning would do it, but it is not in Firefox yet.
+    const filterButton = document.querySelector('[popovertarget="category-filter"]');
+
+    categoryFilter.addEventListener("beforetoggle", function (event) {
+        if (event.newState !== "open") return;
+
+        const button = filterButton.getBoundingClientRect();
+        const width = Math.min(320, window.innerWidth - 32);
+        categoryFilter.style.width = `${width}px`;
+        categoryFilter.style.top = `${button.bottom + 8}px`;
+        categoryFilter.style.left = `${Math.max(16, Math.min(button.right - width, window.innerWidth - width - 16))}px`;
+    });
+
+    // The panel stays open, because picking two categories in a row is the
     // ordinary case and reopening it between them is not worth the click.
     categoryFilter.addEventListener("click", function (event) {
         const choice = event.target.closest("[data-category]");
