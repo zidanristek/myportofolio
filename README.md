@@ -70,7 +70,7 @@ python manage.py createsuperuser
 Akun biasa dibuat lewat halaman `/register/`. Untuk menjadikannya editor, buka
 `/admin`, pilih akunnya, lalu masukkan ke grup `Editor`.
 
-Jalankan `python manage.py test` untuk menjalankan 72 test di `main/tests.py`.
+Jalankan `python manage.py test` untuk menjalankan 85 test di `main/tests.py`.
 
 ## Struktur
 
@@ -80,20 +80,20 @@ Jalankan `python manage.py test` untuk menjalankan 72 test di `main/tests.py`.
 | `main/models.py` | model `Experience` dan `Project` |
 | `main/forms.py` | `ProjectForm`, `ExperienceForm`, dan `SignUpForm` |
 | `main/admin.py` | `Experience` dan `Project` didaftarkan ke Django Admin |
-| `main/views.py` | tiga halaman, empat endpoint data, dan enam view tulis |
+| `main/views.py` | tiga halaman, empat endpoint data, dan tujuh view tulis |
 | `main/urls.py` | rute halaman dan `/api/` dengan namespace `main` |
 | `main/fixtures/` | isi awal kedua tabel, dimuat migrasi `0004` |
-| `main/tests.py` | 72 test |
+| `main/tests.py` | 85 test |
 | `templates/base.html` | head, navbar, footer, dipakai ketiga halaman |
 | `templates/index.html` | halaman profil |
-| `templates/projects.html` | daftar proyek |
+| `templates/projects.html` | kerangka daftar proyek, kartunya dirakit JavaScript |
 | `templates/experience.html` | carousel pengalaman |
 | `templates/projects_form.html` | form tambah dan ubah proyek |
 | `templates/experience_form.html` | form tambah dan ubah pengalaman |
 | `templates/auth_form.html` | kerangka form akun, diwarisi register dan login |
 | `templates/components/` | potongan template yang dipakai ulang |
 | `static/css/style.css` | seluruh gaya |
-| `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D |
+| `static/js/` | `hero.js` bintang dan parallax, `nav.js` navbar, menu, dan panah carousel, `viewer.js` penampil 3D, `toast.js` notifikasi |
 | `static/img/` | foto, logo, sampul proyek, gambar pengalaman, ikon teknologi |
 | `static/model/object.fbx` | Makara UI untuk penampil 3D |
 
@@ -206,6 +206,7 @@ gitGraph
 | Tugas 3 | `ExperienceForm`, alur lengkap tambah, ubah, dan hapus pengalaman, endpoint JSON dan XML untuk pengalaman, halaman pengalaman dibaca lewat deserialisasi, tombol ubah untuk proyek, enam belas unit test tambahan |
 | Tutorial 04 | registrasi, login, logout, cookie `last_login`, tombol star pada proyek, penguncian view tulis untuk pemilik, enam belas unit test tambahan |
 | Tugas 4 | peran Editor lewat `Group` dan permission, star pada pengalaman, pembatasan empat peran di sisi server, empat belas unit test tambahan |
+| Tutorial 05 | notifikasi toast, daftar proyek diambil lewat AJAX, pencarian dengan debounce 300 ms, modal tambah proyek yang dikirim lewat `fetch`, escaping di sisi klien dan pembersihan tag di sisi server, tiga belas unit test tambahan |
 
 ## Peran
 

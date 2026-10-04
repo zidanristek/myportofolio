@@ -26,7 +26,8 @@
                     </button>
                 </form>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_project' %}" class="btn btn-primary btn-sm">Tambah Proyek</a>
+                    <button type="button" class="btn btn-primary btn-sm"
+                            popovertarget="add-project-modal">Tambah Proyek</button>
                 {% endif %}
             </div>
 
@@ -39,11 +40,16 @@
             <div id="grid" class="shell project-grid hide"></div>
         </section>
 
+    {% if user.is_superuser %}
+        {% include "components/project_form_modal.html" %}
+    {% endif %}
+
     <script>
     const PROJECTS_ENDPOINT = "{% url 'main:get_projects_json' %}";
     const CAN_CHANGE = "{{ perms.main.change_project|yesno:'true,false' }}" === "true";
     const IS_OWNER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
     const CSRF_TOKEN = "{{ csrf_token }}";
+    const CREATE_ENDPOINT = "{% url 'main:create_project_ajax' %}";
 
     // Every url below is built from one dummy key, because the template tag
     // needs a valid UUID at render time and the real ones only arrive as JSON.
@@ -60,6 +66,11 @@
     const searchInput = document.getElementById("search-input");
 
     let projectsRequest;
+
+    // Long enough that a word being typed does not turn into one request per
+    // letter, short enough that the list still feels like it answers at once.
+    const SEARCH_DELAY = 300;
+    let searchTimer;
 
     // Django escapes every {{ variable }} on its own. Once the cards are built
     // here they reach the page through innerHTML, where a title carrying a tag
@@ -191,10 +202,64 @@
         }
     });
 
+    function search() {
+        fetchProjects(searchInput.value.trim());
+    }
+
+    // Each keystroke cancels the previous timer, so the request only leaves
+    // once the typing stops.
+    searchInput.addEventListener("input", function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(search, SEARCH_DELAY);
+    });
+
     searchForm.addEventListener("submit", function (event) {
         event.preventDefault();
-        fetchProjects(searchInput.value.trim());
+        clearTimeout(searchTimer);
+        search();
     });
+
+    // Only the owner gets the modal, so for everyone else the form is absent.
+    // Guarding here keeps the missing element from throwing and taking the
+    // first fetchProjects call down with it.
+    const projectForm = document.getElementById("project-form");
+
+    if (projectForm) {
+        projectForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submit = projectForm.querySelector('button[type="submit"]');
+            submit.disabled = true;
+
+            try {
+                const response = await fetch(CREATE_ENDPOINT, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": CSRF_TOKEN },
+                    body: new FormData(projectForm),
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (response.ok) {
+                    projectForm.reset();
+                    document.getElementById("add-project-modal").hidePopover();
+                    showToast("Tersimpan", "Proyek baru sudah masuk ke daftar.", "success");
+                    // The keyword still in the box decides whether the new
+                    // project belongs on screen, so the list is asked again
+                    // rather than patched by hand.
+                    fetchProjects(searchInput.value.trim());
+                } else {
+                    const messages = result.errors
+                        ? Object.values(result.errors).flat().map(error => error.message)
+                        : [result.message || `Gagal menyimpan (status ${response.status}).`];
+                    showToast("Gagal menyimpan", messages.join(" "), "error");
+                }
+            } catch (error) {
+                console.error("Gagal menyimpan proyek:", error);
+                showToast("Gagal menyimpan", "Tidak bisa menghubungi server.", "error");
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    }
 
     fetchProjects(searchInput.value.trim());
     </script>

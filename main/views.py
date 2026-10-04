@@ -12,12 +12,20 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from main.forms import ExperienceForm, ProjectForm, SignUpForm
 from main.models import Experience, Project
 
 OWNER = "Muhammad Sultan Zidan"
 
+
+
+def _next_position():
+    """New rows land at the end. Left at the default of 0 they would jump ahead
+    of the projects the ordering was curated for."""
+    last = Project.objects.aggregate(Max("position"))["position__max"] or 0
+    return last + 1
 
 
 def _owner_only(request):
@@ -290,8 +298,38 @@ def show_projects(request):
     context = {
         "name": OWNER,
         "title_query": request.GET.get("title", "").strip(),
+        # An unbound form, only so the modal has fields, labels and widgets to
+        # render. Nothing is saved through it; the browser posts to the endpoint
+        # below instead.
+        "form": ProjectForm(),
     }
     return render(request, "projects.html", context)
+
+
+@require_POST
+def create_project_ajax(request):
+    """The same rule as create_project, answered in JSON.
+
+    login_required is deliberately absent. It answers a signed-out visitor with
+    a redirect to the login page, which fetch follows, leaving JavaScript with
+    an HTML page and status 200 to make sense of. AnonymousUser.is_superuser is
+    False anyway, so one check refuses the visitor and the ordinary account
+    alike, in a shape the caller can read.
+    """
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambah proyek."},
+            status=403,
+        )
+
+    form = ProjectForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+    project = form.save(commit=False)
+    project.position = _next_position()
+    project.save()
+    return JsonResponse({"pk": str(project.id)}, status=201)
 
 
 @login_required(login_url="/login/")
@@ -301,10 +339,7 @@ def create_project(request):
 
     if request.method == "POST" and form.is_valid():
         project = form.save(commit=False)
-        # New rows land at the end. Left at the default of 0 they would jump
-        # ahead of the six the ordering was curated for.
-        last = Project.objects.aggregate(Max("position"))["position__max"] or 0
-        project.position = last + 1
+        project.position = _next_position()
         project.save()
 
         messages.success(request, "Proyek baru berhasil ditambahkan.")

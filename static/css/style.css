@@ -1333,7 +1333,7 @@ body.menu-open {
 /* Delete confirmation, built on the popover attribute so the browser handles
    the top layer, the backdrop stacking, and dismissal on Escape. */
 
-.delete-modal {
+.modal {
     display: none;
     position: fixed;
     inset: 0;
@@ -1348,13 +1348,13 @@ body.menu-open {
     overflow: hidden;
 }
 
-.delete-modal:popover-open {
+.modal:popover-open {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.delete-modal-backdrop {
+.modal-backdrop {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -1369,7 +1369,7 @@ body.menu-open {
 /* The card gradient is translucent by design. Over a blurred page that reads
    as muddy, so a solid ground goes underneath it here. */
 
-.delete-modal-box {
+.modal-box {
     position: relative;
     z-index: 1;
     width: min(100%, 440px);
@@ -1377,14 +1377,23 @@ body.menu-open {
     background: var(--gradient-card-blue), var(--navy-900);
 }
 
-.delete-modal-box h2 {
+/* The add form carries more fields than the delete question, so it gets a
+   wider box and a scrollbar rather than a page that runs off the screen. */
+
+.modal-box-wide {
+    width: min(100%, 640px);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+.modal-box h2 {
     margin-bottom: 0.6rem;
     font-size: 1.2rem;
     font-weight: 800;
     color: var(--n-100);
 }
 
-.delete-modal-form label {
+.modal-form label {
     display: block;
     margin: 1.1rem 0 0.4rem;
     font-size: 0.8rem;
@@ -1394,7 +1403,7 @@ body.menu-open {
     color: var(--blue-200);
 }
 
-.delete-modal-form input {
+.modal-form input {
     width: 100%;
     box-sizing: border-box;
     padding: 0.65rem 0.9rem;
@@ -1406,7 +1415,7 @@ body.menu-open {
     font-size: 0.9rem;
 }
 
-.delete-modal-actions {
+.modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.6rem;
@@ -1707,24 +1716,24 @@ body.menu-open {
 
     /* Sheet yang naik dari dasar layar lebih mudah dijangkau ibu jari
        daripada kotak melayang di tengah. */
-    .delete-modal:popover-open {
+    .modal:popover-open {
         align-items: flex-end;
     }
 
-    .delete-modal {
+    .modal {
         padding: 0;
     }
 
-    .delete-modal-box {
+    .modal-box {
         width: 100%;
         border-radius: var(--radius-card) var(--radius-card) 0 0;
     }
 
-    .delete-modal-actions {
+    .modal-actions {
         flex-direction: column-reverse;
     }
 
-    .delete-modal-actions .btn {
+    .modal-actions .btn {
         width: 100%;
     }
 }
