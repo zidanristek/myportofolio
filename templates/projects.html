@@ -25,6 +25,19 @@
                         </svg>
                     </button>
                 </form>
+                <button type="button" class="btn btn-secondary btn-icon"
+                        popovertarget="category-filter" aria-label="Saring kategori">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         aria-hidden="true" focusable="false">
+                        <line x1="8" y1="6" x2="20" y2="6"></line>
+                        <line x1="8" y1="12" x2="20" y2="12"></line>
+                        <line x1="8" y1="18" x2="20" y2="18"></line>
+                        <circle cx="4" cy="6" r="1.4" fill="currentColor" stroke="none"></circle>
+                        <circle cx="4" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+                        <circle cx="4" cy="18" r="1.4" fill="currentColor" stroke="none"></circle>
+                    </svg>
+                </button>
                 {% if user.is_superuser %}
                     <button type="button" class="btn btn-primary btn-sm"
                             popovertarget="add-project-modal">Tambah Proyek</button>
@@ -39,6 +52,24 @@
 
             <div id="grid" class="shell project-grid hide"></div>
         </section>
+
+    <div id="category-filter" class="modal" popover="auto" role="dialog"
+         aria-modal="true" aria-labelledby="category-filter-title">
+        <button type="button" class="modal-backdrop" popovertarget="category-filter"
+                popovertargetaction="hide" aria-label="Tutup saringan kategori"></button>
+
+        <div class="card modal-box">
+            <h2 id="category-filter-title">Saring kategori</h2>
+            <div class="filter-list">
+                <button type="button" class="btn btn-secondary btn-sm is-active"
+                        data-category="">Semua</button>
+                {% for value, label in categories %}
+                    <button type="button" class="btn btn-secondary btn-sm"
+                            data-category="{{ value }}">{{ label }}</button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 
     {% if user.is_superuser %}
         {% include "components/project_form_modal.html" %}
@@ -64,6 +95,9 @@
     const grid = document.getElementById("grid");
     const searchForm = document.getElementById("project-search-form");
     const searchInput = document.getElementById("search-input");
+
+    const categoryFilter = document.getElementById("category-filter");
+    let activeCategory = "";
 
     let projectsRequest;
 
@@ -144,7 +178,7 @@
         return card;
     }
 
-    async function fetchProjects(query = "") {
+    async function fetchProjects(query = "", category = "") {
         // A slow first request must not land on top of a later, narrower one.
         if (projectsRequest) projectsRequest.abort();
         projectsRequest = new AbortController();
@@ -152,8 +186,11 @@
         showOnly({ loading: true });
 
         try {
-            const url = query
-                ? `${PROJECTS_ENDPOINT}?title=${encodeURIComponent(query)}`
+            const params = new URLSearchParams();
+            if (query) params.set("title", query);
+            if (category) params.set("category", category);
+            const url = params.toString()
+                ? `${PROJECTS_ENDPOINT}?${params}`
                 : PROJECTS_ENDPOINT;
             const response = await fetch(url, {
                 headers: { "Accept": "application/json" },
@@ -164,8 +201,8 @@
             const projects = await response.json();
 
             if (projects.length === 0) {
-                emptyState.textContent = query
-                    ? "Tidak ada proyek dengan nama tersebut."
+                emptyState.textContent = query || category
+                    ? "Tidak ada proyek yang cocok dengan saringan ini."
                     : "Belum ada proyek yang ditambahkan.";
                 showOnly({ empty: true });
                 return;
@@ -191,8 +228,22 @@
     });
 
     function search() {
-        fetchProjects(searchInput.value.trim());
+        fetchProjects(searchInput.value.trim(), activeCategory);
     }
+
+    // The two filters stack, so picking a category keeps whatever is in the
+    // search box rather than starting the list over.
+    categoryFilter.addEventListener("click", function (event) {
+        const choice = event.target.closest("[data-category]");
+        if (!choice) return;
+
+        activeCategory = choice.dataset.category;
+        categoryFilter.querySelectorAll("[data-category]").forEach(function (button) {
+            button.classList.toggle("is-active", button === choice);
+        });
+        categoryFilter.hidePopover();
+        search();
+    });
 
     // Each keystroke cancels the previous timer, so the request only leaves
     // once the typing stops.
@@ -233,7 +284,7 @@
                     // The keyword still in the box decides whether the new
                     // project belongs on screen, so the list is asked again
                     // rather than patched by hand.
-                    fetchProjects(searchInput.value.trim());
+                    search();
                 } else {
                     const messages = result.errors
                         ? Object.values(result.errors).flat().map(error => error.message)
@@ -249,6 +300,6 @@
         });
     }
 
-    fetchProjects(searchInput.value.trim());
+    search();
     </script>
 {% endblock %}

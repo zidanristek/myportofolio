@@ -447,6 +447,61 @@ class ExperienceCategoryFilterTest(TestCase):
         self.assertEqual(body, [])
 
 
+class ProjectCategoryFilterTest(TestCase):
+    """The same toolbar button as the experience page, on the archive."""
+
+    def setUp(self):
+        Project.objects.create(
+            title="Nusantara Defense",
+            description="Tower defense mitologi Nusantara.",
+            category="game",
+            tech_stack="Roblox Studio, Lua",
+            position=1,
+        )
+        Project.objects.create(
+            title="Pacilator",
+            description="Menerjemahkan dokumen dan takarir.",
+            category="tool",
+            tech_stack="Python, PyQt5",
+            position=2,
+        )
+
+    def test_the_page_offers_every_category(self):
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertContains(response, 'popovertarget="category-filter"')
+        for value, label in Project.CATEGORY_CHOICES:
+            self.assertContains(response, 'data-category="%s"' % value)
+
+    def test_the_endpoint_narrows_to_one_category(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"), {"category": "tool"}
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body], ["Pacilator"])
+
+    def test_a_category_nobody_offers_is_ignored(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"), {"category": "<script>"}
+            ).content
+        )
+
+        self.assertEqual(len(body), 2)
+
+    def test_a_keyword_and_a_category_narrow_together(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_projects_json"),
+                {"title": "nusantara", "category": "tool"},
+            ).content
+        )
+
+        self.assertEqual(body, [])
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.

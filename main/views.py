@@ -270,12 +270,20 @@ def delete_experience(request, experience_id):
 
 
 def _matching_projects(request):
-    """Every project, narrowed by the title in the query string if there is one."""
+    """Every project, narrowed by the title and category in the query string.
+
+    An unknown category is ignored rather than refused, for the same reason as
+    the experience list above.
+    """
     projects = Project.objects.all()
     title_query = request.GET.get("title", "").strip()
+    category = request.GET.get("category", "").strip()
 
     if title_query:
         projects = projects.filter(title__icontains=title_query)
+
+    if category in dict(Project.CATEGORY_CHOICES):
+        projects = projects.filter(category=category)
 
     return projects
 
@@ -323,6 +331,7 @@ def show_projects(request):
     context = {
         "name": OWNER,
         "title_query": request.GET.get("title", "").strip(),
+        "categories": Project.CATEGORY_CHOICES,
         # An unbound form, only so the modal has fields, labels and widgets to
         # render. Nothing is saved through it; the browser posts to the endpoint
         # below instead.
