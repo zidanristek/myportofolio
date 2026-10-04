@@ -361,6 +361,46 @@ class ExperienceApiTest(TestCase):
         self.assertTrue(masuk["is_starred"])
 
 
+class ExperienceSearchTest(TestCase):
+    """Searching happens in the browser now, so what the page has to get right
+    is the delay and the form that no longer submits itself."""
+
+    def setUp(self):
+        Experience.objects.create(
+            title="Project Officer URBAN 2026",
+            description="Memimpin kepanitiaan acara.",
+            category="volunteer",
+            position=1,
+        )
+        Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=2,
+        )
+
+    def test_the_page_waits_before_asking(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, "const SEARCH_DELAY = 300")
+
+    def test_the_search_form_does_not_reload_the_page(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, 'id="experience-search-form"')
+        self.assertNotContains(response, 'form method="get"')
+
+    def test_a_keyword_narrows_the_endpoint(self):
+        body = json.loads(
+            self.client.get(
+                reverse("main:get_experiences_json"), {"title": "urban"}
+            ).content
+        )
+
+        self.assertEqual([row["fields"]["title"] for row in body],
+                         ["Project Officer URBAN 2026"])
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.

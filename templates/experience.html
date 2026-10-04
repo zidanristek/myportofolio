@@ -10,7 +10,8 @@
             </header>
 
             <div class="shell project-toolbar">
-                <form method="get" action="{% url 'main:show_experience' %}" class="project-search">
+                {# No method or action: the submit handler below takes both over. #}
+                <form id="experience-search-form" class="project-search">
                     <input type="search" name="title" id="search-input" value="{{ title_query }}"
                            class="project-search-input"
                            placeholder="Cari nama pengalaman"
@@ -64,9 +65,15 @@
     const emptyState = document.getElementById("empty");
     const track = document.getElementById("experience-track");
     const carousel = document.querySelector(".carousel");
+    const searchForm = document.getElementById("experience-search-form");
     const searchInput = document.getElementById("search-input");
 
     let experiencesRequest;
+
+    // Long enough that a word being typed does not turn into one request per
+    // letter, short enough that the list still feels like it answers at once.
+    const SEARCH_DELAY = 300;
+    let searchTimer;
 
     function showOnly({ loading = false, error = false, empty = false, cards = false }) {
         loadingState.classList.toggle("hide", !loading);
@@ -181,6 +188,23 @@
         }
     });
 
-    fetchExperiences(searchInput.value.trim());
+    function search() {
+        fetchExperiences(searchInput.value.trim());
+    }
+
+    // Each keystroke cancels the previous timer, so the request only leaves
+    // once the typing stops.
+    searchInput.addEventListener("input", function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(search, SEARCH_DELAY);
+    });
+
+    searchForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        clearTimeout(searchTimer);
+        search();
+    });
+
+    search();
     </script>
 {% endblock %}
