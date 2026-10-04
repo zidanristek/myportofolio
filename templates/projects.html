@@ -72,18 +72,6 @@
     const SEARCH_DELAY = 300;
     let searchTimer;
 
-    // Django escapes every {{ variable }} on its own. Once the cards are built
-    // here they reach the page through innerHTML, where a title carrying a tag
-    // would run as markup, so the escaping has to be done by hand.
-    function escapeHtml(value) {
-        return String(value ?? "")
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#39;");
-    }
-
     function showOnly({ loading = false, error = false, empty = false, cards = false }) {
         loadingState.classList.toggle("hide", !loading);
         errorState.classList.toggle("hide", !error);

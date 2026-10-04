@@ -266,6 +266,23 @@ class ProjectWriteTest(TestCase):
         self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
 
 
+class SharedScriptTest(TestCase):
+    """escapeHtml used to live inside the script on the projects page. A second
+    page now builds cards the same way, so it moved to a file every page loads.
+    """
+
+    def test_every_page_loads_the_shared_helper(self):
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "js/dom.js")
+
+    def test_the_projects_page_no_longer_carries_its_own_copy(self):
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertNotContains(response, "function escapeHtml")
+        self.assertContains(response, "escapeHtml(")
+
+
 class ProjectAjaxCreateTest(TestCase):
     """The endpoint the modal posts to, which answers in JSON rather than
     redirecting, so the page can stay where it is."""
