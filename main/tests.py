@@ -534,6 +534,101 @@ class ProjectCategoryFilterTest(TestCase):
         self.assertEqual(body, [])
 
 
+class ExperienceAjaxCreateTest(TestCase):
+    """The endpoint the experience modal posts to, which answers in JSON rather
+    than redirecting, so the carousel can stay where it is."""
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser("pemilik", password="rahasia-uji")
+        Experience.objects.create(
+            title="Asisten Riset",
+            description="Membantu penelitian dosen.",
+            category="research",
+            position=1,
+        )
+        self.url = reverse("main:create_experience_ajax")
+        self.payload = {
+            "title": "Panitia COMPFEST",
+            "description": "Mengurus kebutuhan peserta lomba.",
+            "category": "volunteer",
+            "thumbnail": "",
+            "position": 2,
+            "is_finished": "",
+        }
+
+    def test_the_owner_creates_and_gets_the_new_key_back(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 201)
+        experience = Experience.objects.get(title="Panitia COMPFEST")
+        self.assertEqual(json.loads(response.content)["pk"], str(experience.id))
+
+    def test_an_unfinished_entry_keeps_an_open_end_date(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, self.payload)
+
+        self.assertTrue(Experience.objects.get(title="Panitia COMPFEST").is_ongoing)
+
+    def test_the_finished_checkbox_closes_the_entry(self):
+        self.client.force_login(self.owner)
+
+        self.client.post(self.url, dict(self.payload, is_finished="on"))
+
+        self.assertFalse(Experience.objects.get(title="Panitia COMPFEST").is_ongoing)
+
+    def test_invalid_input_is_refused_with_the_field_errors(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.url, dict(self.payload, title=""))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+        self.assertFalse(Experience.objects.filter(category="volunteer").exists())
+
+    def test_a_visitor_is_refused_in_json_rather_than_redirected(self):
+        # A redirect would be followed by fetch, which would then be handed a
+        # login page with status 200 and no way to tell that it failed.
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertFalse(Experience.objects.filter(title="Panitia COMPFEST").exists())
+
+    def test_a_registered_account_is_refused(self):
+        self.client.force_login(User.objects.create_user("warga", password="rahasia-uji"))
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Experience.objects.filter(title="Panitia COMPFEST").exists())
+
+    def test_an_editor_is_refused_too(self):
+        editor = User.objects.create_user("editor", password="rahasia-uji")
+        editor.groups.add(Group.objects.get(name="Editor"))
+        self.client.force_login(editor)
+
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.owner)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_the_modal_reaches_the_owner_alone(self):
+        visitor = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(visitor, 'id="experience-form"')
+
+        self.client.force_login(self.owner)
+        owner = self.client.get(reverse("main:show_experience"))
+        self.assertContains(owner, 'id="experience-form"')
+        self.assertContains(owner, 'popovertarget="add-experience-modal"')
+
+
 class SharedScriptTest(TestCase):
     """escapeHtml used to live inside the script on the projects page. A second
     page now builds cards the same way, so it moved to a file every page loads.
@@ -1154,7 +1249,7 @@ class EditorRoleTest(TestCase):
         self.assertEqual(self.client.get(edit).status_code, 403)
 
     def test_the_page_offers_each_role_only_what_it_may_use(self):
-        add = reverse("main:create_experience")
+        add = 'popovertarget="add-experience-modal"'
 
         # The buttons are assembled by the script from these two flags, so the
         # flags are what the page has to get right.

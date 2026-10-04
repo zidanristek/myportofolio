@@ -39,7 +39,8 @@
                     </svg>
                 </button>
                 {% if user.is_superuser %}
-                    <a href="{% url 'main:create_experience' %}" class="btn btn-primary btn-sm">Tambah Pengalaman</a>
+                    <button type="button" class="btn btn-primary btn-sm"
+                            popovertarget="add-experience-modal">Tambah Pengalaman</button>
                 {% endif %}
             </div>
 
@@ -59,6 +60,10 @@
                         data-step="1" aria-label="Next experience"></button>
             </div>
         </section>
+
+    {% if user.is_superuser %}
+        {% include "components/experience_form_modal.html" %}
+    {% endif %}
 
     <div id="category-filter" class="modal" popover="auto" role="dialog"
          aria-modal="true" aria-labelledby="category-filter-title">
@@ -96,6 +101,9 @@
 
     // Every url below is built from one dummy key, because the template tag
     // needs a valid UUID at render time and the real ones only arrive as JSON.
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const CREATE_ENDPOINT = "{% url 'main:create_experience_ajax' %}";
+
     const DUMMY_ID = "00000000-0000-0000-0000-000000000000";
     const EDIT_URL = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
     const DELETE_URL = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
@@ -271,6 +279,48 @@
         clearTimeout(searchTimer);
         search();
     });
+
+    // Only the owner gets the modal, so for everyone else the form is absent.
+    // Guarding here keeps the missing element from throwing and taking the
+    // first fetch down with it.
+    const experienceForm = document.getElementById("experience-form");
+
+    if (experienceForm) {
+        experienceForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submit = experienceForm.querySelector('button[type="submit"]');
+            submit.disabled = true;
+
+            try {
+                const response = await fetch(CREATE_ENDPOINT, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": CSRF_TOKEN },
+                    body: new FormData(experienceForm),
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (response.ok) {
+                    experienceForm.reset();
+                    document.getElementById("add-experience-modal").hidePopover();
+                    showToast("Tersimpan", "Pengalaman baru sudah masuk ke daftar.", "success");
+                    // Whatever is in the search box and lit in the category
+                    // dialog decides whether the new entry belongs on screen,
+                    // so the list is asked again rather than patched by hand.
+                    search();
+                } else {
+                    const messages = result.errors
+                        ? Object.values(result.errors).flat().map(error => error.message)
+                        : [result.message || `Gagal menyimpan (status ${response.status}).`];
+                    showToast("Gagal menyimpan", messages.join(" "), "error");
+                }
+            } catch (error) {
+                console.error("Gagal menyimpan pengalaman:", error);
+                showToast("Gagal menyimpan", "Tidak bisa menghubungi server.", "error");
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    }
 
     search();
     </script>

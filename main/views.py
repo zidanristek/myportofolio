@@ -199,6 +199,10 @@ def show_experience(request):
         "name": OWNER,
         "title_query": request.GET.get("title", "").strip(),
         "categories": Experience.EXPERIENCE_CHOICES,
+        # An unbound form, only so the modal has fields, labels and widgets to
+        # render. Nothing is saved through it; the browser posts to the
+        # endpoint above instead.
+        "form": ExperienceForm(),
     }
     return render(request, "experience.html", context)
 
@@ -215,6 +219,28 @@ def _save_experience(form):
 
     experience.save()
     return experience
+
+
+@require_POST
+def create_experience_ajax(request):
+    """The same rule as create_experience, answered in JSON.
+
+    login_required is deliberately absent, for the reason spelled out on
+    create_project_ajax: a redirect to the login page would be followed by
+    fetch and arrive as an HTML page with status 200.
+    """
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambah pengalaman."},
+            status=403,
+        )
+
+    form = ExperienceForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+    experience = _save_experience(form)
+    return JsonResponse({"pk": str(experience.id)}, status=201)
 
 
 @login_required(login_url="/login/")
