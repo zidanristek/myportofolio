@@ -703,6 +703,15 @@ class StarApiTest(TestCase):
         self.assertEqual(body["star_count"], 1)
         self.assertTrue(body["is_starred"])
 
+    def test_both_pages_star_through_the_script(self):
+        dummy = "00000000-0000-0000-0000-000000000000"
+
+        for page, toggle in (("main:show_experience", "main:toggle_star_experience"),
+                             ("main:show_projects", "main:toggle_star")):
+            response = self.client.get(reverse(page))
+            self.assertContains(response, reverse(toggle, args=[dummy]))
+            self.assertContains(response, "X-Requested-With")
+
     def test_a_plain_submit_still_redirects(self):
         self.client.force_login(self.warga)
 
