@@ -707,10 +707,9 @@ class StarApiTest(TestCase):
         dummy = "00000000-0000-0000-0000-000000000000"
 
         for page, toggle in (("main:show_experience", "main:toggle_star_experience"),
-                             ("main:show_projects", "main:toggle_star")):
+                             ("main:show_projects", "api:project-star")):
             response = self.client.get(reverse(page))
             self.assertContains(response, reverse(toggle, args=[dummy]))
-            self.assertContains(response, "X-Requested-With")
 
     def test_a_plain_submit_still_redirects(self):
         self.client.force_login(self.warga)

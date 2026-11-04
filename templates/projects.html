@@ -84,19 +84,21 @@
         {% include "components/project_form_modal.html" %}
     {% endif %}
 
+    {% csrf_token %}
     <script>
-    const PROJECTS_ENDPOINT = "{% url 'main:get_projects_json' %}";
+    const PROJECTS_ENDPOINT = "{% url 'api:project-list' %}";
     const CAN_CHANGE = "{{ perms.main.change_project|yesno:'true,false' }}" === "true";
     const IS_OWNER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
     const CSRF_TOKEN = "{{ csrf_token }}";
-    const CREATE_ENDPOINT = "{% url 'main:create_project_ajax' %}";
+    const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+    const LOGIN_URL = "{% url 'main:login' %}";
 
     // Every url below is built from one dummy key, because the template tag
     // needs a valid UUID at render time and the real ones only arrive as JSON.
     const DUMMY_ID = "00000000-0000-0000-0000-000000000000";
     const EDIT_URL = "{% url 'main:update_project' '00000000-0000-0000-0000-000000000000' %}";
-    const DELETE_URL = "{% url 'main:delete_project' '00000000-0000-0000-0000-000000000000' %}";
-    const STAR_URL = "{% url 'main:toggle_star' '00000000-0000-0000-0000-000000000000' %}";
+    const DETAIL_URL = "{% url 'api:project-detail' '00000000-0000-0000-0000-000000000000' %}";
+    const STAR_URL = "{% url 'api:project-star' '00000000-0000-0000-0000-000000000000' %}";
 
     const loadingState = document.getElementById("loading");
     const errorState = document.getElementById("error");
@@ -124,9 +126,8 @@
         grid.classList.toggle("hide", !cards);
     }
 
-    function buildCard(item) {
-        const project = item.fields;
-        const csrf = `<input type="hidden" name="csrfmiddlewaretoken" value="${CSRF_TOKEN}">`;
+    function buildCard(project) {
+        const id = escapeHtml(project.id);
 
         const cover = project.cover_url
             ? `<img class="project-cover" src="${escapeHtml(project.cover_url)}"
@@ -144,30 +145,30 @@
         const starTitle = project.star_count
             ? `Dibintangi oleh ${escapeHtml(project.starred_by_names)}`
             : "Jadilah yang pertama memberi star";
-        const star = `
-            <form method="post" action="${STAR_URL.replace(DUMMY_ID, item.pk)}" class="star-form">
-                ${csrf}
-                <button type="submit" class="btn btn-sm btn-star${project.is_starred ? " is-starred" : ""}"
-                        title="${starTitle}">
+        // Signed-out visitors get a link, because the API answers them 403.
+        const star = IS_AUTHENTICATED
+            ? `<button type="button" data-action="star" data-id="${id}"
+                       class="btn btn-sm btn-star${project.is_starred ? " is-starred" : ""}"
+                       title="${starTitle}">
                     <span aria-hidden="true">&#9733;</span>
                     ${project.is_starred ? "Unstar" : "Star"}
                     <span class="star-count">${project.star_count}</span>
-                </button>
-            </form>`;
+                </button>`
+            : `<a href="${LOGIN_URL}" class="btn btn-sm btn-star" title="${starTitle}">
+                    <span aria-hidden="true">&#9733;</span> Star
+                    <span class="star-count">${project.star_count}</span>
+                </a>`;
 
         const edit = CAN_CHANGE
-            ? `<a href="${EDIT_URL.replace(DUMMY_ID, item.pk)}" class="btn btn-secondary btn-sm">Ubah</a>`
+            ? `<a href="${EDIT_URL.replace(DUMMY_ID, project.id)}" class="btn btn-secondary btn-sm">Ubah</a>`
             : "";
 
         // The popover dialog the server used to render carried one id per card.
         // Rebuilding that here would mean minting ids in JavaScript, so a card
         // made by JavaScript asks with the browser's own confirm instead.
         const remove = IS_OWNER
-            ? `<form method="post" action="${DELETE_URL.replace(DUMMY_ID, item.pk)}"
-                     class="delete-form" data-title="${escapeHtml(project.title)}">
-                ${csrf}
-                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-            </form>`
+            ? `<button type="button" data-action="delete" data-id="${id}"
+                       data-title="${escapeHtml(project.title)}" class="btn btn-danger btn-sm">Hapus</button>`
             : "";
 
         const card = document.createElement("article");
@@ -175,7 +176,7 @@
         card.innerHTML = `
             ${cover}
             <div class="project-body">
-                <p class="card-kind">${escapeHtml(project.category)}</p>
+                <p class="card-kind">${escapeHtml(project.category_display)}</p>
                 <h2 class="card-heading">${escapeHtml(project.title)}</h2>
                 <p class="card-text">${escapeHtml(project.description)}</p>
                 <ul class="pill-list">${pills}</ul>
@@ -228,14 +229,33 @@
         }
     }
 
-    // One listener on the container, because the forms inside it are replaced
-    // on every search and would each need rebinding otherwise.
+    // DRF errors are flat: {"title": ["..."]} or {"detail": "..."}.
+    function apiErrorMessage(data, status) {
+        const messages = Object.values(data).flat().filter(value => typeof value === "string");
+        return messages.join(" ") || `Permintaan gagal (status ${status}).`;
+    }
+
+    // One place for every write: JSON in, JSON out, CSRF from the session.
+    async function writeProject(url, method, payload) {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRFToken": CSRF_TOKEN,
+            },
+            body: payload === undefined ? undefined : JSON.stringify(payload),
+        });
+        if (response.status === 204) return null;
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(apiErrorMessage(data, response.status));
+        return data;
+    }
 
     // A starred card may also be on screen as one of the carousel clones, so
-    // every copy with the same action is rewritten, not just the one clicked.
-    function applyStar(action, data) {
-        document.querySelectorAll(`.star-form[action="${action}"]`).forEach(function (form) {
-            const button = form.querySelector("button");
+    // every copy with the same id is rewritten, not just the one clicked.
+    function applyStar(data) {
+        document.querySelectorAll(`[data-action="star"][data-id="${data.id}"]`).forEach(function (button) {
             button.classList.toggle("is-starred", data.is_starred);
             button.title = data.star_count
                 ? `Dibintangi oleh ${data.starred_by_names}`
@@ -249,77 +269,31 @@
         });
     }
 
-    async function remove(form) {
-        const button = form.querySelector("button");
+    // One listener on the container, because the buttons inside it are
+    // replaced on every search and would each need rebinding otherwise.
+    grid.addEventListener("click", async function (event) {
+        const button = event.target.closest("button[data-action]");
+        if (!button || button.disabled) return;
+        const action = button.dataset.action;
+        if (action === "delete"
+            && !confirm(`Hapus ${button.dataset.title}? Proyek ini tidak bisa dikembalikan.`)) return;
+
         button.disabled = true;
-
         try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": CSRF_TOKEN,
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-                body: new FormData(form),
-            });
-            if (!response.ok) throw new Error("status " + response.status);
-
-            showToast("Terhapus", "Proyek itu sudah dikeluarkan dari daftar.", "success");
-            // The list is asked again rather than the card pulled out by hand:
-            // the keyword and the categories decide what belongs on screen, and
-            // a deleted card may have copies of itself still rendered.
-            search();
-        } catch (error) {
-            console.error("Gagal menghapus:", error);
-            showToast("Gagal menghapus", "Proyek itu masih ada di daftar.", "error");
-            button.disabled = false;
-        }
-    }
-
-    async function star(form) {
-        const button = form.querySelector("button");
-        button.disabled = true;
-
-        try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": CSRF_TOKEN,
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-                body: new FormData(form),
-            });
-
-            // Signing in is still a redirect, which fetch follows, so an
-            // unstarred visitor lands here holding the login page as HTML.
-            if (!response.headers.get("Content-Type")?.includes("application/json")) {
-                window.location = response.url;
-                return;
+            if (action === "star") {
+                applyStar(await writeProject(STAR_URL.replace(DUMMY_ID, button.dataset.id), "POST"));
+            } else {
+                await writeProject(DETAIL_URL.replace(DUMMY_ID, button.dataset.id), "DELETE");
+                showToast("Terhapus", "Proyek itu sudah dikeluarkan dari daftar.", "success");
+                // Asked again rather than pulled out by hand: the filters decide
+                // what belongs on screen, and clones of the card may exist.
+                search();
             }
-
-            applyStar(form.getAttribute("action"), await response.json());
         } catch (error) {
-            console.error("Gagal mengubah star:", error);
-            showToast("Gagal", "Tidak bisa menghubungi server.", "error");
+            console.error("Gagal:", error);
+            showToast("Gagal", error.message, "error");
         } finally {
             button.disabled = false;
-        }
-    }
-
-    grid.addEventListener("submit", function (event) {
-        const starForm = event.target.closest(".star-form");
-        if (starForm) {
-            event.preventDefault();
-            star(starForm);
-            return;
-        }
-
-        const form = event.target.closest(".delete-form");
-        if (!form) return;
-
-        event.preventDefault();
-        if (confirm(`Hapus ${form.dataset.title}? Proyek ini tidak bisa dikembalikan.`)) {
-            remove(form);
         }
     });
 
@@ -407,30 +381,19 @@
             submit.disabled = true;
 
             try {
-                const response = await fetch(CREATE_ENDPOINT, {
-                    method: "POST",
-                    headers: { "X-CSRFToken": CSRF_TOKEN },
-                    body: new FormData(projectForm),
-                });
-                const result = await response.json().catch(() => ({}));
-
-                if (response.ok) {
-                    projectForm.reset();
-                    document.getElementById("add-project-modal").hidePopover();
-                    showToast("Tersimpan", "Proyek baru sudah masuk ke daftar.", "success");
-                    // The keyword still in the box decides whether the new
-                    // project belongs on screen, so the list is asked again
-                    // rather than patched by hand.
-                    search();
-                } else {
-                    const messages = result.errors
-                        ? Object.values(result.errors).flat().map(error => error.message)
-                        : [result.message || `Gagal menyimpan (status ${response.status}).`];
-                    showToast("Gagal menyimpan", messages.join(" "), "error");
-                }
+                const fields = new FormData(projectForm);
+                // Only model fields, so the form token is not sent as data.
+                const payload = Object.fromEntries([
+                    "title", "description", "category", "tech_stack", "project_url", "project_image_url",
+                ].map(name => [name, fields.get(name) ?? ""]));
+                await writeProject(PROJECTS_ENDPOINT, "POST", payload);
+                projectForm.reset();
+                document.getElementById("add-project-modal").hidePopover();
+                showToast("Tersimpan", "Proyek baru sudah masuk ke daftar.", "success");
+                search();
             } catch (error) {
                 console.error("Gagal menyimpan proyek:", error);
-                showToast("Gagal menyimpan", "Tidak bisa menghubungi server.", "error");
+                showToast("Gagal menyimpan", error.message, "error");
             } finally {
                 submit.disabled = false;
             }
