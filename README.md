@@ -406,6 +406,29 @@ template hanya mengatur apa yang terlihat, bukan apa yang boleh dijalankan.
    `<img src="x" onerror="alert('XSS!')">` dan hasilnya tampil sebagai teks
    biasa, tidak ada alert.
 
+### Tugas 6
+
+1. Menurut saya REST itu lebih ke cara ngemanage APInya dimana URL buat resource
+   dan HTTP method buat action dan requestnya stateless jadi return JSON aja
+   ngga mesti RESTful. PUT itu ngereplace satu object full kyk ngesave ulang
+   semua field Experience sedangkan PATCH cuma ngeubah sebagian kyk judul atau
+   status selesainya aja.
+2. Serializer itu kerjanya two-way yg ngeubah object model jadi JSON buat
+   response terus ngevalidasi JSON dari client sebelum masuk ke database. Pas
+   Tutorial 05 saya ngedevelop dictionary sama ngehandle error manual di view
+   sedangkan sekarang field read-only sama strip_tags bisa ditulis 1x di
+   serializer.
+3. Authentication itu ngecek siapa usernya sedangkan authorization ngecek
+   otorisasi user bisa apa aja dan di DRF yg pertama dihandle
+   SessionAuthentication terus yg kedua permission class. Kalau cuma ngehide
+   button di template orang masih bisa ngenembak PATCH langsung dari Console
+   atau curl makanya pengecekannya wajib di server.
+4. Browser bisa otomatis ngenempelin cookie session ke tiap request termasuk yg
+   ditrigger web lain jadi CSRF token yg ngebuktiin requestnya beneran dari web
+   saya. force_authenticate itu ngeset user tanpa login beneran dan ngeskip CSRF
+   jadi buat ngetes CSRF saya pakai APIClient(enforce_csrf_checks=True) plus
+   .login() dan PATCH tanpa token langsung kereject.
+
 ## Penggunaan AI
 
 Saya memakai AI dalam pengerjaan tugas ini. Berikut bagian mana saja dan
