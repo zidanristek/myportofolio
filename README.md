@@ -772,3 +772,16 @@ Hasilnya saya tempel balik ke berkas yang saya tunjuk, lalu saya jalankan
 meleset karena jawaban pertamanya cuma memanggil ulang fungsi lama tanpa
 membersihkan pendengar yang sudah terpasang, dan baru benar setelah saya
 tunjukkan bahwa klik satu panah jadi menggeser dua kali.
+
+### Tugas 6
+
+Pekan ini Claude saya gunakan buat diskusi. Seperti biasa saya jelaskan dulu
+project saya, misal `Experience` udah punya star di `main/models.py` dan
+searching di `main/views.py`. Terus soal Tugas 6, saya jelasin yg saya tau dari
+ngebaca instruksinya, kemudian ngasih asumsi saya buat ngubah apa aja dan nanya
+apakah itu sesuai memenuhi Tugas 6 atau engga. Ternyata kata Claude iya, terus
+udah deh saya coba rubah. Habis itu saya nanya kodenya ada error atau celah
+atau engga, terus bagian yg salah dibenarkan oleh Claude, tapi saya sempat
+ngefilter soalnya ada halusinasi dikit. Pas udah saya test dan sesuai, baru
+saya commit. Saya juga ngeminta Claude ngeperbaiki kosakata yg ga umum dipakai,
+biar pas kerjasama sama tim orang lain langsung paham kosakatanya.
