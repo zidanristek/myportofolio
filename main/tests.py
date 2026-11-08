@@ -706,7 +706,7 @@ class StarApiTest(TestCase):
     def test_both_pages_star_through_the_script(self):
         dummy = "00000000-0000-0000-0000-000000000000"
 
-        for page, toggle in (("main:show_experience", "main:toggle_star_experience"),
+        for page, toggle in (("main:show_experience", "api:experience-star"),
                              ("main:show_projects", "api:project-star")):
             response = self.client.get(reverse(page))
             self.assertContains(response, reverse(toggle, args=[dummy]))
@@ -1053,7 +1053,7 @@ class ExperienceWriteTest(TestCase):
 
         dummy = "00000000-0000-0000-0000-000000000000"
         self.assertContains(response, reverse("main:update_experience", args=[dummy]))
-        self.assertContains(response, reverse("main:delete_experience", args=[dummy]))
+        self.assertContains(response, reverse("api:experience-detail", args=[dummy]))
 
     def test_delete_experience(self):
         response = self.client.post(
