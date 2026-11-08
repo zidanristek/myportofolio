@@ -1,0 +1,34 @@
+{# The add modal's twin for editors and the owner. Its form is built with an
+   edit_ prefix on every id, so the two can sit on one page without their
+   labels pointing at each other's inputs. The script fills it from the API
+   before it opens, and sends only PATCH. #}
+<div id="edit-experience-modal" class="modal" popover="auto"
+     role="dialog" aria-modal="true" aria-labelledby="edit-experience-title">
+    <button type="button" class="modal-backdrop"
+            popovertarget="edit-experience-modal"
+            popovertargetaction="hide"
+            aria-label="Tutup form ubah pengalaman"></button>
+
+    <div class="card modal-box modal-box-wide">
+        <h2 id="edit-experience-title">Ubah pengalaman</h2>
+
+        <form id="edit-experience-form" class="project-form">
+            {% for field in edit_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="form-help">{{ field.help_text }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-external"
+                        popovertarget="edit-experience-modal"
+                        popovertargetaction="hide">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1052,8 +1052,8 @@ class ExperienceWriteTest(TestCase):
         response = self.client.get(reverse("main:show_experience"))
 
         dummy = "00000000-0000-0000-0000-000000000000"
-        self.assertContains(response, reverse("main:update_experience", args=[dummy]))
         self.assertContains(response, reverse("api:experience-detail", args=[dummy]))
+        self.assertContains(response, 'id="edit-experience-form"')
 
     def test_delete_experience(self):
         response = self.client.post(

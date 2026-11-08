@@ -65,6 +65,9 @@
     {% if user.is_superuser %}
         {% include "components/experience_form_modal.html" %}
     {% endif %}
+    {% if perms.main.change_experience %}
+        {% include "components/experience_edit_modal.html" %}
+    {% endif %}
 
     {# A panel under its own button rather than a dialog over the page: it only
        narrows the list, so dimming and blurring everything behind it made the
@@ -106,7 +109,6 @@
     const LOGIN_URL = "{% url 'main:login' %}";
 
     const DUMMY_ID = "00000000-0000-0000-0000-000000000000";
-    const EDIT_URL = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
     const DETAIL_URL = "{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}";
     const STAR_URL = "{% url 'api:experience-star' '00000000-0000-0000-0000-000000000000' %}";
 
@@ -163,7 +165,7 @@
                 </a>`;
 
         const edit = CAN_CHANGE
-            ? `<a href="${EDIT_URL.replace(DUMMY_ID, experience.id)}" class="btn btn-secondary btn-sm">Ubah</a>`
+            ? `<button type="button" data-action="edit" data-id="${id}" class="btn btn-secondary btn-sm">Ubah</button>`
             : "";
 
         // The popover dialog the server used to render carried one id per card,
@@ -281,6 +283,10 @@
         const button = event.target.closest("button[data-action]");
         if (!button || button.disabled) return;
         const action = button.dataset.action;
+        if (action === "edit") {
+            openEdit(button);
+            return;
+        }
         if (action === "delete"
             && !confirm(`Hapus ${button.dataset.title}? Pengalaman ini tidak bisa dikembalikan.`)) return;
 
@@ -413,6 +419,56 @@
                 search();
             } catch (error) {
                 console.error("Gagal menyimpan pengalaman:", error);
+                showToast("Gagal menyimpan", error.message, "error");
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    }
+
+    // Editors and the owner get the edit modal. It is filled from the detail
+    // endpoint rather than from the card, because the card does not carry
+    // the raw thumbnail path or the position.
+    const editModal = document.getElementById("edit-experience-modal");
+    const editForm = document.getElementById("edit-experience-form");
+    let editingId = null;
+
+    async function openEdit(button) {
+        button.disabled = true;
+        try {
+            const response = await fetch(DETAIL_URL.replace(DUMMY_ID, button.dataset.id), {
+                headers: { "Accept": "application/json" },
+            });
+            if (!response.ok) throw new Error(`Gagal memuat (status ${response.status}).`);
+            const experience = await response.json();
+
+            editingId = experience.id;
+            editForm.elements.title.value = experience.title;
+            editForm.elements.description.value = experience.description;
+            editForm.elements.category.value = experience.category;
+            editForm.elements.thumbnail.value = experience.thumbnail ?? "";
+            editForm.elements.position.value = experience.position;
+            editForm.elements.is_finished.checked = !experience.is_ongoing;
+            editModal.showPopover();
+        } catch (error) {
+            showToast("Gagal", error.message, "error");
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    if (editForm) {
+        editForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submit = editForm.querySelector('button[type="submit"]');
+            submit.disabled = true;
+
+            try {
+                await writeExperience(DETAIL_URL.replace(DUMMY_ID, editingId), "PATCH", experiencePayload(editForm));
+                editModal.hidePopover();
+                showToast("Tersimpan", "Perubahan pengalaman sudah disimpan.", "success");
+                search();
+            } catch (error) {
                 showToast("Gagal menyimpan", error.message, "error");
             } finally {
                 submit.disabled = false;

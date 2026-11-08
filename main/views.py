@@ -227,6 +227,9 @@ def show_experience(request):
         # render. Nothing is saved through it; the browser posts to the
         # endpoint above instead.
         "form": ExperienceForm(),
+        # A second unbound copy for the edit modal, with its own ids so both
+        # modals can share the page.
+        "edit_form": ExperienceForm(auto_id="edit_%s"),
     }
     return render(request, "experience.html", context)
 
