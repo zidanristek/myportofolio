@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from main.models import Project
+from main.models import Experience, Project
 
 class ProjectAPITest(APITestCase):
     def setUp(self):
@@ -135,3 +135,131 @@ class ProjectAPITest(APITestCase):
             self.list_url, self.payload, format="json", HTTP_X_CSRFTOKEN=token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class ExperienceAPITest(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_superuser(
+            username="owner", password="test-password", email="owner@example.com",
+        )
+        self.visitor = User.objects.create_user(username="visitor", password="test-password")
+        self.editor = User.objects.create_user(username="editor", password="test-password")
+        # Migration 0009 already creates the group with change_experience, so
+        # it is fetched here; creating it again would break the unique name.
+        self.editor.groups.add(Group.objects.get(name="Editor"))
+        self.experience = Experience.objects.create(
+            title="Fund Winner RISTEK Hackathon 2026",
+            description="Biotopia won the hackathon.", category="research", position=1,
+        )
+        self.list_url = reverse("api:experience-list")
+        self.detail_url = reverse("api:experience-detail", args=[self.experience.id])
+        self.star_url = reverse("api:experience-star", args=[self.experience.id])
+        self.payload = {
+            "title": "Project Officer URBAN 2026", "description": "Led the URBAN committee.",
+            "category": "volunteer", "thumbnail": "", "position": 2,
+        }
+
+    def test_public_list_detail_and_search(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]["id"], str(self.experience.id))
+        self.assertNotIn("starred_by", response.data[0])
+        self.assertEqual(len(self.client.get(self.list_url, {"title": "ristek"}).data), 1)
+        self.assertEqual(self.client.get(self.list_url, {"category": "volunteer"}).data, [])
+        self.assertEqual(self.client.get(self.detail_url).status_code, status.HTTP_200_OK)
+
+    def test_missing_experience(self):
+        url = reverse("api:experience-detail", args=[uuid.uuid4()])
+        self.assertEqual(self.client.get(url).status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_guest_and_visitor_cannot_write(self):
+        for user in (None, self.visitor):
+            self.client.force_authenticate(user=user)
+            self.assertEqual(self.client.post(self.list_url, self.payload, format="json").status_code, 403)
+            self.assertEqual(self.client.patch(self.detail_url, {"title": "Changed"}, format="json").status_code, 403)
+            self.assertEqual(self.client.delete(self.detail_url).status_code, 403)
+        self.assertEqual(Experience.objects.count(), 1)
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, "Fund Winner RISTEK Hackathon 2026")
+
+    def test_editor_can_patch_and_put_but_not_create_or_delete(self):
+        self.client.force_authenticate(user=self.editor)
+        response = self.client.patch(self.detail_url, {"title": "Changed"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.put(self.detail_url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.post(self.list_url, self.payload, format="json").status_code, 403)
+        self.assertEqual(self.client.delete(self.detail_url).status_code, 403)
+        self.assertEqual(Experience.objects.count(), 1)
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, "Project Officer URBAN 2026")
+
+    def test_owner_can_create_and_delete(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(self.list_url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Experience.objects.filter(pk=response.data["id"]).exists())
+        response = self.client.delete(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.content, b"")
+        self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_finished_checkbox_sets_and_keeps_the_end_date(self):
+        self.client.force_authenticate(user=self.owner)
+        self.client.patch(self.detail_url, {"is_finished": True}, format="json")
+        self.experience.refresh_from_db()
+        ended_at = self.experience.ended_at
+        self.assertIsNotNone(ended_at)
+        # Saving again as finished must keep the first end date.
+        self.client.patch(self.detail_url, {"is_finished": True}, format="json")
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.ended_at, ended_at)
+        self.client.patch(self.detail_url, {"is_finished": False}, format="json")
+        self.experience.refresh_from_db()
+        self.assertIsNone(self.experience.ended_at)
+
+    def test_validation(self):
+        self.client.force_authenticate(user=self.owner)
+        for changes, field in [
+            ({"title": "   "}, "title"),
+            ({"title": "<b></b>"}, "title"),
+            ({"category": "astronaut"}, "category"),
+        ]:
+            response = self.client.post(self.list_url, {**self.payload, **changes}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertIn(field, response.data)
+        self.assertEqual(Experience.objects.count(), 1)
+        response = self.client.post(self.list_url, {
+            **self.payload, "title": "<i>Lab</i> Assistant", "description": "<b>Ran</b> labs",
+        }, format="json")
+        self.assertEqual(response.data["title"], "Lab Assistant")
+        self.assertEqual(response.data["description"], "Ran labs")
+
+    def test_star_requires_login_and_toggles(self):
+        self.assertEqual(self.client.post(self.star_url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+        self.client.force_authenticate(user=self.visitor)
+        response = self.client.post(self.star_url)
+        self.assertTrue(response.data["is_starred"])
+        self.assertEqual(response.data["star_count"], 1)
+        self.assertEqual(list(self.experience.starred_by.all()), [self.visitor])
+        response = self.client.post(self.star_url)
+        self.assertFalse(response.data["is_starred"])
+        self.assertEqual(response.data["star_count"], 0)
+
+    def test_computed_fields_are_read_only(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(self.list_url, {
+            **self.payload, "star_count": 99, "is_starred": True, "starred_by": [self.visitor.id],
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["star_count"], 0)
+        self.assertFalse(Experience.objects.get(pk=response.data["id"]).starred_by.exists())
+
+    def test_session_write_without_csrf_is_rejected(self):
+        client = APIClient(enforce_csrf_checks=True)
+        self.assertTrue(client.login(username="editor", password="test-password"))
+        response = client.patch(self.detail_url, {"title": "Changed"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, "Fund Winner RISTEK Hackathon 2026")
