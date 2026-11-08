@@ -12,16 +12,19 @@ class IsPortfolioOwnerOrReadOnly(BasePermission):
 
 
 class IsPortfolioOwnerOrEditorOrReadOnly(BasePermission):
-    """Editors may correct an existing entry but never create or delete one."""
+    """Editors may correct an existing experience but never create or delete one.
+
+    The Editor group grants change_experience (migration 0009), and the HTML
+    edit page already checks that permission, so the API checks the same one
+    instead of the group name.
+    """
+
+    message = "Only the portfolio owner or an editor can change experiences."
 
     def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        if not request.user.is_authenticated:
-            return False
-        if request.user.is_superuser:
+        if request.method in SAFE_METHODS or request.user.is_superuser:
             return True
         return (
             request.method in ("PUT", "PATCH")
-            and request.user.groups.filter(name="Editor").exists()
+            and request.user.has_perm("main.change_experience")
         )
