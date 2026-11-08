@@ -208,6 +208,8 @@ gitGraph
 | Tugas 4 | peran Editor lewat `Group` dan permission, star pada pengalaman, pembatasan empat peran di sisi server, empat belas unit test tambahan |
 | Tutorial 05 | notifikasi toast, daftar proyek diambil lewat AJAX, pencarian dengan debounce 300 ms, modal tambah proyek yang dikirim lewat `fetch`, escaping di sisi klien dan pembersihan tag di sisi server, tiga belas unit test tambahan |
 | Tugas 5 | halaman pengalaman pindah ke AJAX dengan status memuat, kosong, dan gagal, pencarian ber-debounce, saringan kategori berganda di kedua halaman, modal tambah pengalaman lewat `fetch`, star dan hapus tanpa muat ulang, `strip_tags` pada `ExperienceForm`, empat puluh tujuh unit test tambahan |
+| Tutorial 07 | Django REST Framework, `ProjectSerializer`, permission class untuk pemilik dan editor, endpoint `/api/v1/projects/` dengan star, halaman proyek digerakkan API, tiga belas unit test tambahan dengan `APITestCase` |
+| Tugas 6 | `ExperienceSerializer` dengan field star read-only dan `strip_tags`, endpoint `/api/v1/experiences/` untuk empat peran, pencarian lewat parameter query, halaman pengalaman digerakkan API, modal ubah lewat `PATCH`, sepuluh unit test tambahan termasuk penolakan tanpa token CSRF |
 
 ## Peran
 
